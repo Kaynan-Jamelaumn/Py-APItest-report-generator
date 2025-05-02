@@ -246,8 +246,12 @@ class BaseAPITest(unittest.TestCase):
         response = self.session.request(method, url, **kwargs)
         self.response = response
         duration = time.time() - start_time
-        BaseAPITest._response_times.append(duration) # Track response time
-
+        # Track response time - add endpoint identification
+        BaseAPITest._response_times.append({
+            'endpoint': url.replace(self.base_url, '').strip('/'),  # Store endpoint
+            'duration': duration,
+            'test_class': self.__class__.__name__  # Store test class name
+        })
         # If no expected status provided and response is an error, log it
         if expected_status is None and response.status_code >= 400:
             self.log_error_response(response)

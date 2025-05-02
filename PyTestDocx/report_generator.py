@@ -151,38 +151,45 @@ class ReportGenerator:
             logger.error(f"Failed to generate chart: {str(e)}")
 
     def _add_response_time_chart(self):
-        """Generate and insert histogram of API response times"""
+        """Generate and insert histogram of API response times grouped by endpoint"""
         try:
             if not self.response_times:
                 return  # Skip if no response time data
 
-            # Create histogram
-            plt.figure(figsize=(10, 6))
-            n, bins, patches = plt.hist(self.response_times, bins=8, color='#4CAF50', 
-                                      edgecolor='black', alpha=0.7)
-            plt.xlabel('Response Time (seconds)')
-            plt.ylabel('Frequency')
-            plt.title('API Response Time Distribution')
+            # Group response times by endpoint
+            from collections import defaultdict
+            endpoint_times = defaultdict(list)
+            for entry in self.response_times:
+                endpoint_times[entry['endpoint']].append(entry['duration'])
+
+            # Create figure
+            plt.figure(figsize=(12, 6))
             
-            # Add median line
-            median_time = sorted(self.response_times)[len(self.response_times)//2]
-            plt.axvline(median_time, color='#FF5722', linestyle='dashed', linewidth=2)
-            plt.text(median_time*1.05, max(n)*0.9, 
-                    f'Median: {median_time:.2f}s', 
-                    color='#FF5722')
+            # Plot each endpoint's response times
+            colors = ['#4CAF50', '#2196F3', '#FF5722', '#9C27B0']
+            for i, (endpoint, times) in enumerate(endpoint_times.items()):
+                plt.plot(times, marker='o', linestyle='-', 
+                        color=colors[i % len(colors)], 
+                        label=f"{endpoint} ({len(times)} calls)")
+
+            plt.xlabel('Request Sequence')
+            plt.ylabel('Response Time (seconds)')
+            plt.title('Endpoint Response Times Over Test Execution')
+            plt.legend()
+            plt.grid(True)
 
             # Save and insert chart
             chart_path = "response_time_chart.png"
             plt.savefig(chart_path, bbox_inches='tight')
             plt.close()
             
-            self.doc.add_paragraph("Response Time Analysis:")
+            self.doc.add_paragraph("Endpoint Response Time Analysis:")
             self.doc.paragraphs[-1].style = self.doc.styles['Heading 2']
             self.doc.add_picture(chart_path, width=Pt(400))
             os.remove(chart_path)
         except Exception as e:
             logger.error(f"Failed to generate response time chart: {str(e)}")
-
+            raise  # Re-raise to see error in test output
     def _add_environment_info(self):
         """Add table showing test environment details"""
         self.doc.add_heading('Environment Information', level=1)

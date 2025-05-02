@@ -24,25 +24,26 @@ class TestBillingOperations(BaseAPITest):
             "cartao_vencimento": "10/24"
         }
         
-        response = self.session.put(
+        response = self.make_request(
+            'PUT',
             f"{self.base_url}/transaction-data",
+            expected_status=200,
             json=payload,
             headers=self.auth_headers()
         )
         
-        self.assert_response(response, 200)
         self.assertEqual(response.json()['id'], 1)
 
     def test_retrieve_transaction(self):
         """Should fetch existing transaction data"""
-        response = self.session.get(
+        response = self.make_request(
+            'GET',
             f"{self.base_url}/get-transaction-data/2",
+            expected_status=200,
             headers=self.auth_headers()
         )
         
-        self.assert_response(response, 200)
         self.assertIn('id_plano', response.json())
-
 
 
 
