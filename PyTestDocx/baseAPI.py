@@ -26,7 +26,7 @@ class BaseAPITest(unittest.TestCase):
     ERROR_LOG_FILE = "test_errors.log"      # File for error logs
     ERROR_DOCX_FILE = "test_errors.docx"    # File for generated report
     EXECUTED_LOG_FILE = "executed_tests.log" # File for test execution log
- base_url = os.getenv("BASE_API_URL", "https://test.com")# Base API URL
+    base_url = os.getenv("BASE_API_URL", "https://test.com")# Base API URL
     _response_times = []    # List to track API response times
 
     @classmethod
