@@ -11,6 +11,7 @@ all_test_methods.log
 report.log
 errors.log
 .log
+.docx
 
 # Distribution / packaging
 .Python
