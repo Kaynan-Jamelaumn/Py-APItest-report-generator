@@ -228,32 +228,148 @@ class BaseAPITest(unittest.TestCase):
             'Authorization': f'Bearer {self.access_token}',
             'Content-Type': 'application/json'
         }
+    def make_request(self, method, url, expected_status=None, json_check=None,
+                    redact_sensitive_keys=True, redact_sensitive_data=True,
+                    sensitive_keys=None, sensitive_headers=None, **kwargs):
+        """Utility method to make API requests with timing, error handling, automatic assertions, and retries.
 
-    def make_request(self, method, url, expected_status=None, **kwargs):
-        """Utility method to make API requests with timing and error handling"""
+        Args:
+            method (str): HTTP method (e.g., 'GET', 'POST').
+            url (str): Full URL to send the request to.
+            expected_status (int, optional): Expected HTTP status code.
+            json_check (dict, optional): Key-value pairs to validate in JSON response.
+            redact_sensitive_keys (bool): Redact sensitive headers (default: True).
+            redact_sensitive_data (bool): Redact sensitive data values (default: True).
+            sensitive_keys (list): Custom keys to redact in data (default: None).
+            sensitive_headers (list): Custom headers to redact (default: None).
+            **kwargs: Additional request parameters (timeout, max_retries, retry_delay).
+
+        Returns:
+            requests.Response: The response object.
+        """
+        # Capture request details for logging
         self._request_body = None
-        start_time = time.time()
+        self._request_method = method
+        self._request_url = url
+        self._request_params = kwargs.get('params', {})
 
-        # Capture request body for logging
+        # Redact sensitive params if enabled
+        if redact_sensitive_data:
+            self._request_params = self._redact_sensitive_data(
+                self._request_params, 
+                sensitive_keys=sensitive_keys
+            )
+
+        # Process headers
+        request_headers = self.session.headers.copy()
+        if 'headers' in kwargs:
+            request_headers.update(kwargs['headers'])
+        self._request_headers = (
+            self._redact_headers(request_headers, sensitive_headers=sensitive_headers) 
+            if redact_sensitive_keys 
+            else request_headers
+        )
+
+        # Process request body
         if 'files' in kwargs:
             self._request_body = {'files': kwargs['files']}
         elif 'json' in kwargs:
-            self._request_body = kwargs['json']
+            self._request_body = (
+                self._redact_sensitive_data(kwargs['json'], sensitive_keys=sensitive_keys) 
+                if redact_sensitive_data 
+                else kwargs['json']
+            )
         elif 'data' in kwargs:
-            self._request_body = kwargs['data']
+            self._request_body = (
+                self._redact_sensitive_data(kwargs['data'], sensitive_keys=sensitive_keys) 
+                if redact_sensitive_data 
+                else kwargs['data']
+            )
+        else:
+            self._request_body = None
 
-        # Make the actual request
-        response = self.session.request(method, url, **kwargs)
-        self.response = response
-        duration = time.time() - start_time
-        # Track response time - add endpoint identification
-        BaseAPITest._response_times.append({
-            'endpoint': url.replace(self.base_url, '').strip('/'),  # Store endpoint
-            'duration': duration,
-            'test_class': self.__class__.__name__  # Store test class name
-        })
-        # If no expected status provided and response is an error, log it
-        if expected_status is None and response.status_code >= 400:
-            self.log_error_response(response)
+        # Log redacted details
+        logger.debug(f"Request Method: {method}")
+        logger.debug(f"Request URL: {url}")
+        logger.debug(f"Request Headers: {self._request_headers}")
+        if self._request_params:
+            logger.debug(f"Request Params: {json.dumps(self._request_params, indent=2)}")
+        if self._request_body is not None:
+            logger.debug(f"Request Body: {json.dumps(self._request_body, indent=2)}")
+
+        # Retry configuration
+        max_retries = kwargs.pop('max_retries', getattr(self, 'MAX_RETRIES', 3))
+        retry_delay = kwargs.pop('retry_delay', getattr(self, 'RETRY_DELAY', 1))
+        timeout = kwargs.pop('timeout', 10)
+        attempts = 0
+        response = None
+
+        while attempts <= max_retries:
+            start_time = time.time()
+            try:
+                response = self.session.request(method, url, timeout=timeout, **kwargs)
+                duration = time.time() - start_time
+
+                # Track metrics
+                BaseAPITest._response_times.append({
+                    'endpoint': url.replace(self.base_url, '').strip('/'),
+                    'method': method,
+                    'duration': duration,
+                    'test_class': self.__class__.__name__,
+                    'status_code': response.status_code,
+                    'attempt': attempts + 1
+                })
+
+                # Retry on 500 errors
+                if response.status_code == 500 and attempts < max_retries:
+                    logger.info(f"Retrying {method} {url} (500 error) [Attempt {attempts+1}/{max_retries}]")
+                    time.sleep(retry_delay)
+                    attempts += 1
+                    continue
+                break
+
+            except requests.exceptions.RequestException as e:
+                duration = time.time() - start_time
+                BaseAPITest._response_times.append({
+                    'endpoint': url.replace(self.base_url, '').strip('/'),
+                    'method': method,
+                    'duration': duration,
+                    'test_class': self.__class__.__name__,
+                    'status_code': None,
+                    'error': str(e),
+                    'attempt': attempts + 1
+                })
+
+                if attempts < max_retries:
+                    logger.info(f"Retrying {method} {url} ({e}) [Attempt {attempts+1}/{max_retries}]")
+                    time.sleep(retry_delay)
+                    attempts += 1
+                else:
+                    self._log_test_failure(e, self._result)
+                    raise AssertionError(f"Request failed after {max_retries} retries") from e
+
+        # Validate response
+        if expected_status is not None:
+            self.assert_response(response, expected_status, json_check)
+        elif not (200 <= response.status_code < 300):
+            self.fail(f"Unexpected status {response.status_code}. Response: {response.text}")
 
         return response
+
+    def _redact_headers(self, headers, sensitive_headers=None):
+        """Redact sensitive headers using provided list or defaults."""
+        default_sensitive_headers = {'Authorization', 'Cookie', 'Set-Cookie', 'X-Auth-Token', 'X-API-Key'}
+        sensitive_headers = set(sensitive_headers) if sensitive_headers else default_sensitive_headers
+        return {k: '***' if k in sensitive_headers else v for k, v in headers.items()}
+
+    def _redact_sensitive_data(self, data, sensitive_keys=None):
+        """Recursively redact sensitive values using provided keys or defaults."""
+        default_sensitive_keys = {'password', 'token', 'secret', 'api_key', 'authorization'}
+        sensitive_keys = set(sensitive_keys) if sensitive_keys else default_sensitive_keys
+        
+        if isinstance(data, dict):
+            return {k: '***' if k.lower() in sensitive_keys else self._redact_sensitive_data(v, sensitive_keys) 
+                    for k, v in data.items()}
+        elif isinstance(data, list):
+            return [self._redact_sensitive_data(item, sensitive_keys) for item in data]
+        return data
