@@ -5,6 +5,12 @@ __pycache__/
 tests/
 # C extensions
 *.so
+test_report.docx
+test_errors.log
+all_test_methods.log
+report.log
+errors.log
+.log
 
 # Distribution / packaging
 .Python
