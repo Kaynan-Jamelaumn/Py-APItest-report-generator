@@ -149,9 +149,23 @@ class BaseAPITest(unittest.TestCase):
         self.test_logger.log_test_error(log_entry)
 
 
-    def login(self, username=None, password=None):
-        """Authenticate and store session credentials"""
-        url = f"{self.base_url}/login"
+    def login(self, username=None, password=None, endpoint=None):
+        """Authenticate and store session credentials
+        
+        Args:
+            username (str, optional): Username for authentication. Defaults to .env TEST_USER.
+            password (str, optional): Password for authentication. Defaults to .env TEST_PASSWORD.
+            endpoint (str, optional): Custom auth endpoint path. If None, tries '/login' first,
+                                    then falls back to '/authenticate' if the first attempt fails.
+                                    If provided, only tries the specified endpoint.
+        
+        Returns:
+            requests.Response: Authentication response
+        
+        Raises:
+            ValueError: If credentials are missing
+            requests.exceptions.RequestException: If all attempts fail (when endpoint=None)
+        """
         # Use provided credentials or fall back to .env file
         payload = {
             'login': username or os.getenv('TEST_USER'),
@@ -163,15 +177,45 @@ class BaseAPITest(unittest.TestCase):
             raise ValueError("Missing credentials in .env file")
 
         self._request_body = payload
-        response = self.session.post(url, json=payload, headers=self.headers)
-        self.response = response
-        if response.ok:
-            data = response.json()
-            # Store auth token and user ID for future requests
-            self.access_token = data.get('api_jwt', {}).get('access_token')
-            self.user_id = data.get('user', {}).get('id')
-        return response
-
+        
+        if endpoint is not None:
+            # Only try the specified endpoint
+            url = f"{self.base_url}{endpoint}" if not endpoint.startswith('http') else endpoint
+            response = self.session.post(url, json=payload, headers=self.headers)
+            self.response = response
+            
+            if response.ok:
+                data = response.json()
+                self.access_token = data.get('api_jwt', {}).get('access_token')
+                self.user_id = data.get('user', {}).get('id')
+            return response
+        else:
+            # Try default endpoints in sequence
+            endpoints_to_try = ['/login', '/authenticate']
+            last_response = None
+            
+            for auth_endpoint in endpoints_to_try:
+                url = f"{self.base_url}{auth_endpoint}"
+                try:
+                    response = self.session.post(url, json=payload, headers=self.headers)
+                    self.response = response
+                    
+                    if response.ok:
+                        data = response.json()
+                        self.access_token = data.get('api_jwt', {}).get('access_token')
+                        self.user_id = data.get('user', {}).get('id')
+                        return response
+                        
+                    last_response = response
+                    
+                except requests.exceptions.RequestException as e:
+                    logger.warning(f"Authentication attempt failed for {url}: {str(e)}")
+                    continue
+            
+            # If we get here, all attempts failed
+            if last_response is not None:
+                return last_response
+            raise requests.exceptions.RequestException("Both /login and /authenticate endpoints failed")
     def assert_response(self, response, expected_status, json_check=None):
         """Universal response assertion with status code and optional JSON validation"""
         self.response = response
