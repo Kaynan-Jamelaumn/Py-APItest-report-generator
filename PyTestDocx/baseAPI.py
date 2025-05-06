@@ -255,7 +255,7 @@ class BaseAPITest(unittest.TestCase):
         }
     def make_request(self, method, url, expected_status=None, json_check=None,
                     redact_sensitive_keys=True, redact_sensitive_data=True,
-                    sensitive_keys=None, sensitive_headers=None, max_response_time=None, **kwargs):
+                    sensitive_keys=None, sensitive_headers=None, max_response_time=None, retriable_status_codes=None, **kwargs):
         """Utility method to make API requests with timing, error handling, automatic assertions, and retries.
 
         Args:
@@ -268,7 +268,11 @@ class BaseAPITest(unittest.TestCase):
             sensitive_keys (list): Custom keys to redact in data (default: None).
             sensitive_headers (list): Custom headers to redact (default: None).
             max_response_time (float): Maximum allowed response time in seconds (default: None).
+            retriable_status_codes (list, optional): List of HTTP status codes that trigger retries. 
+                                               Defaults to None (no status-based retries).
+
             **kwargs: Additional request parameters (timeout, max_retries, retry_delay).
+            
 
         Returns:
             requests.Response: The response object.
@@ -330,6 +334,9 @@ class BaseAPITest(unittest.TestCase):
         attempts = 0
         response = None
 
+        retriable_status_codes = retriable_status_codes or []
+
+
         while attempts <= max_retries:
             start_time = time.time()
             try:
@@ -345,9 +352,13 @@ class BaseAPITest(unittest.TestCase):
                     'status_code': response.status_code,
                     'attempt': attempts + 1
                 })
-                # Retry on 500 errors
-                if response.status_code == 500 and attempts < max_retries:
-                    logger.info(f"Retrying {method} {url} (500 error) [Attempt {attempts+1}/{max_retries}]")
+
+                # Modified retry logic
+                if response.status_code in retriable_status_codes and attempts < max_retries:
+                    logger.info(
+                        f"Retrying {method} {url} ({response.status_code} error) "
+                        f"[Attempt {attempts+1}/{max_retries}]"
+                    )
                     time.sleep(retry_delay)
                     attempts += 1
                     continue
