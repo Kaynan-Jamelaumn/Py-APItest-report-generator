@@ -8,8 +8,9 @@ import sys
 import socket
 import time
 from .report_generator import ReportGenerator
-
-# Configure logging to display INFO level messages
+#from PyTestDocx import LogManager
+from .LogManager import LogManager  
+# Configure logging to display INFO level messages -- root logger (only basic config here)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -22,12 +23,8 @@ class BaseAPITest(unittest.TestCase):
     # Class variables shared across all test cases
     test_start_time = None  # Timestamp when tests started
     test_end_time = None    # Timestamp when tests ended
-    _test_errors = []       # List to accumulate test errors
-    ERROR_LOG_FILE = "test_errors.log"      # File for error logs
-    ERROR_DOCX_FILE = "test_errors.docx"    # File for generated report
-    EXECUTED_LOG_FILE = "executed_tests.log" # File for test execution log
-    base_url = os.getenv("BASE_API_URL", "https://test.com")# Base API URL
-    _response_times = []    # List to track API response times
+    test_logger = LogManager()  # Initialize the logger instance here
+    base_url = os.getenv("BASE_API_URL", "https://test.com")  # Base API URL
 
     @classmethod
     def setUpClass(cls):
@@ -37,14 +34,6 @@ class BaseAPITest(unittest.TestCase):
         cls.headers = {'Content-Type': 'application/json'}  # Default headers
         cls.access_token = None  # Will store authentication token
         cls.user_id = None       # Will store authenticated user ID
-        
-        # Clear previous log files
-        with open(cls.ERROR_LOG_FILE, 'w') as f:
-            f.write("")
-        if os.path.exists(cls.ERROR_DOCX_FILE):
-            os.remove(cls.ERROR_DOCX_FILE)
-        with open(cls.EXECUTED_LOG_FILE, 'w') as f:
-            f.write("")
 
     @classmethod
     def tearDownClass(cls):
@@ -74,15 +63,11 @@ class BaseAPITest(unittest.TestCase):
     def run(self, result=None):
         """Override the default test run method to add custom logging"""
         # Log test attempt
-        with open(self.EXECUTED_LOG_FILE, 'a') as f:
-            f.write(f"ATTEMPTING: {self.id()}\n")
-
+        self.test_logger.log_executed_test(self.id(), "ATTEMPTING")
+        
         if result is None:
             result = self.defaultTestResult()
-
-        # Store the result object for later use in tearDownClass
-        self._result = result
-        type(self)._result = result
+            
         result.startTest(self)
         test_method = getattr(self, self._testMethodName)
 
@@ -92,18 +77,14 @@ class BaseAPITest(unittest.TestCase):
             test_method()
             self.tearDown()
             result.addSuccess(self)
-            # Log successful test
-            with open(self.EXECUTED_LOG_FILE, 'a') as f:
-                f.write(f"  SUCCESS: {self.id()}\n")
+            self.test_logger.log_executed_test(self.id(), "SUCCESS")
         except Exception as e:
-            # Handle test failure
             self._log_test_failure(e, result)
             result.addError(self, sys.exc_info())
-            # Log failed test
-            with open(self.EXECUTED_LOG_FILE, 'a') as f:
-                f.write(f"  ERROR: {self.id()} ({type(e).__name__})\n")
+            self.test_logger.log_executed_test(self.id(), f"ERROR ({type(e).__name__})")
         finally:
             result.stopTest(self)
+
 
     @staticmethod
     def _truncate_long_string(value, max_length=20):
@@ -165,8 +146,8 @@ class BaseAPITest(unittest.TestCase):
                     f"{response_info}"
                     "----------------------------------------\n")
 
-        logger.error(log_entry)
-        BaseAPITest._test_errors.append(log_entry)  # Add to errors list for reporting
+        self.test_logger.log_test_error(log_entry)
+
 
     def login(self, username=None, password=None):
         """Authenticate and store session credentials"""
@@ -311,7 +292,7 @@ class BaseAPITest(unittest.TestCase):
                 duration = time.time() - start_time
 
                 # Track metrics
-                BaseAPITest._response_times.append({
+                self.test_logger.response_times.append({
                     'endpoint': url.replace(self.base_url, '').strip('/'),
                     'method': method,
                     'duration': duration,
@@ -319,7 +300,6 @@ class BaseAPITest(unittest.TestCase):
                     'status_code': response.status_code,
                     'attempt': attempts + 1
                 })
-
                 # Retry on 500 errors
                 if response.status_code == 500 and attempts < max_retries:
                     logger.info(f"Retrying {method} {url} (500 error) [Attempt {attempts+1}/{max_retries}]")

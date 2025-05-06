@@ -87,8 +87,8 @@ def main():
     }
     
     report = ReportGenerator(
-        test_errors=BaseAPITest._test_errors,
-        response_times=BaseAPITest._response_times,
+        test_errors=BaseAPITest.test_logger.test_errors,  # Access through the logger instance
+        response_times=BaseAPITest.test_logger.response_times,  # Also moved to logger
         test_result=result,
         start_time=BaseAPITest.test_start_time,
         end_time=end_time,
