@@ -255,7 +255,7 @@ class BaseAPITest(unittest.TestCase):
         }
     def make_request(self, method, url, expected_status=None, json_check=None,
                     redact_sensitive_keys=True, redact_sensitive_data=True,
-                    sensitive_keys=None, sensitive_headers=None, **kwargs):
+                    sensitive_keys=None, sensitive_headers=None, max_response_time=None, **kwargs):
         """Utility method to make API requests with timing, error handling, automatic assertions, and retries.
 
         Args:
@@ -267,6 +267,7 @@ class BaseAPITest(unittest.TestCase):
             redact_sensitive_data (bool): Redact sensitive data values (default: True).
             sensitive_keys (list): Custom keys to redact in data (default: None).
             sensitive_headers (list): Custom headers to redact (default: None).
+            max_response_time (float): Maximum allowed response time in seconds (default: None).
             **kwargs: Additional request parameters (timeout, max_retries, retry_delay).
 
         Returns:
@@ -377,6 +378,11 @@ class BaseAPITest(unittest.TestCase):
             self.assert_response(response, expected_status, json_check)
         elif not (200 <= response.status_code < 300):
             self.fail(f"Unexpected status {response.status_code}. Response: {response.text}")
+
+        if max_response_time is not None:
+            assertion_msg = (f"Response time {duration:.2f}s exceeds maximum allowed {max_response_time}s "
+                            f"for {method} {url}")
+            self.assertLessEqual(duration, max_response_time, assertion_msg)
 
         return response
 
