@@ -263,17 +263,17 @@ class BaseAPITest(unittest.TestCase):
             'Content-Type': 'application/json'
         }
     def make_request(self, 
-    method: Literal['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'], 
-    url: str, 
-    expected_status: Optional[int]=None, 
-    json_check: Optional[Dict[str, Any]]=None,
-    redact_sensitive_keys: bool=True,
-    redact_sensitive_data: bool=True,
-    sensitive_keys: Optional[List[str]]=None, 
-    sensitive_headers: Optional[List[str]]=None, 
-    max_response_time: Optional[float]=None, 
-    retriable_status_codes: Optional[List[int]]=None,
-     **kwargs: Any) -> Response:
+        method: Literal['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'], 
+        url: str, 
+        expected_status: Optional[int]=None, 
+        json_check: Optional[Dict[str, Any]]=None,
+        redact_sensitive_keys: bool=True,
+        redact_sensitive_data: bool=True,
+        sensitive_keys: Optional[List[str]]=None, 
+        sensitive_headers: Optional[List[str]]=None, 
+        max_response_time: Optional[float]=None, 
+        retriable_status_codes: Optional[List[int]]=None,
+        **kwargs: Any) -> Response:
         """Utility method to make API requests with timing, error handling, automatic assertions, and retries.
 
         Args:
@@ -296,47 +296,79 @@ class BaseAPITest(unittest.TestCase):
             requests.Response: The response object.
         """
         # Capture request details for logging
-        self._request_body = None
+        self._prepare_request_details(method, url, kwargs, redact_sensitive_data, sensitive_keys)
+        self._process_request_headers(kwargs, redact_sensitive_keys, sensitive_headers)
+        self._process_request_body(kwargs, redact_sensitive_data, sensitive_keys)
+        self._log_request_details(method, url)
+
+        max_retries, retry_delay, timeout = self._setup_retry_config(kwargs)
+        retriable_status_codes = retriable_status_codes or []
+
+        response, duration = self._execute_request_with_retries(
+            method, url, timeout, max_retries, retry_delay, retriable_status_codes, kwargs
+        )
+
+        self._validate_response(response, expected_status, json_check, max_response_time, duration, method, url)
+        return response
+
+    def _prepare_request_details(
+        self,
+        method: str,
+        url: str,
+        kwargs: dict,
+        redact_sensitive_data: bool,
+        sensitive_keys: Optional[List[str]]
+    ) -> None:
+        """Capture and redact request parameters."""
         self._request_method = method
         self._request_url = url
         self._request_params = kwargs.get('params', {})
 
-        # Redact sensitive params if enabled
         if redact_sensitive_data:
-            self._request_params = self._redact_sensitive_data(
-                self._request_params, 
-                sensitive_keys=sensitive_keys
-            )
+            self._request_params = self._redact_sensitive_data(self._request_params, sensitive_keys)
 
-        # Process headers
+    def _process_request_headers(
+        self,
+        kwargs: dict,
+        redact_sensitive_keys: bool,
+        sensitive_headers: Optional[List[str]]
+    ) -> None:
+        """Process and redact headers."""
         request_headers = self.session.headers.copy()
         if 'headers' in kwargs:
             request_headers.update(kwargs['headers'])
+
         self._request_headers = (
-            self._redact_headers(request_headers, sensitive_headers=sensitive_headers) 
-            if redact_sensitive_keys 
+            self._redact_headers(request_headers, sensitive_headers)
+            if redact_sensitive_keys
             else request_headers
         )
 
-        # Process request body
+    def _process_request_body(
+        self,
+        kwargs: dict,
+        redact_sensitive_data: bool,
+        sensitive_keys: Optional[List[str]]
+    ) -> None:
+        """Process and redact request body."""
+        self._request_body = None
         if 'files' in kwargs:
             self._request_body = {'files': kwargs['files']}
         elif 'json' in kwargs:
             self._request_body = (
-                self._redact_sensitive_data(kwargs['json'], sensitive_keys=sensitive_keys) 
-                if redact_sensitive_data 
+                self._redact_sensitive_data(kwargs['json'], sensitive_keys)
+                if redact_sensitive_data
                 else kwargs['json']
             )
         elif 'data' in kwargs:
             self._request_body = (
-                self._redact_sensitive_data(kwargs['data'], sensitive_keys=sensitive_keys) 
-                if redact_sensitive_data 
+                self._redact_sensitive_data(kwargs['data'], sensitive_keys)
+                if redact_sensitive_data
                 else kwargs['data']
             )
-        else:
-            self._request_body = None
 
-        # Log redacted details
+    def _log_request_details(self, method: str, url: str) -> None:
+        """Log request details with redacted sensitive information."""
         logger.debug(f"Request Method: {method}")
         logger.debug(f"Request URL: {url}")
         logger.debug(f"Request Headers: {self._request_headers}")
@@ -345,34 +377,36 @@ class BaseAPITest(unittest.TestCase):
         if self._request_body is not None:
             logger.debug(f"Request Body: {json.dumps(self._request_body, indent=2)}")
 
-        # Retry configuration
+    def _setup_retry_config(self, kwargs: dict) -> tuple:
+        """Extract retry configuration from kwargs."""
         max_retries = kwargs.pop('max_retries', getattr(self, 'MAX_RETRIES', 3))
         retry_delay = kwargs.pop('retry_delay', getattr(self, 'RETRY_DELAY', 1))
         timeout = kwargs.pop('timeout', 10)
+        return max_retries, retry_delay, timeout
+
+    def _execute_request_with_retries(
+        self,
+        method: str,
+        url: str,
+        timeout: float,
+        max_retries: int,
+        retry_delay: float,
+        retriable_status_codes: List[int],
+        kwargs: dict
+    ) -> tuple:
+        """Execute request with retry logic."""
         attempts = 0
         response = None
-
-        retriable_status_codes = retriable_status_codes or []
-
+        duration = 0
 
         while attempts <= max_retries:
             start_time = time.time()
             try:
                 response = self.session.request(method, url, timeout=timeout, **kwargs)
                 duration = time.time() - start_time
+                self._track_response_metrics(url, method, duration, response.status_code, attempts + 1)
 
-                # Track metrics
-                self.test_logger.response_times.append({
-                    'endpoint': url.replace(self.base_url, '').strip('/'),
-                    'method': method,
-                    'duration': duration,
-                    'test_class': self.__class__.__name__,
-                    'status_code': response.status_code,
-                    'attempt': attempts + 1
-                })
-
-                # Modified retry logic
-                if response.status_code in retriable_status_codes and attempts < max_retries:
+                if self._should_retry_response(response, attempts, max_retries, retriable_status_codes):
                     logger.info(
                         f"Retrying {method} {url} ({response.status_code} error) "
                         f"[Attempt {attempts+1}/{max_retries}]"
@@ -381,39 +415,93 @@ class BaseAPITest(unittest.TestCase):
                     attempts += 1
                     continue
                 break
-
-            except requests.exceptions.RequestException as e:
+            except RequestException as e:
                 duration = time.time() - start_time
-                self.test_logger.response_times.append.append({
-                    'endpoint': url.replace(self.base_url, '').strip('/'),
-                    'method': method,
-                    'duration': duration,
-                    'test_class': self.__class__.__name__,
-                    'status_code': None,
-                    'error': str(e),
-                    'attempt': attempts + 1
-                })
-
-                if attempts < max_retries:
+                self._track_error_metrics(url, method, duration, e, attempts + 1)
+                if self._should_retry_exception(attempts, max_retries):
                     logger.info(f"Retrying {method} {url} ({e}) [Attempt {attempts+1}/{max_retries}]")
                     time.sleep(retry_delay)
                     attempts += 1
                 else:
                     self._log_test_failure(e, self._result)
                     raise AssertionError(f"Request failed after {max_retries} retries") from e
+        return response, duration
 
-        # Validate response
+    def _track_response_metrics(
+        self,
+        url: str,
+        method: str,
+        duration: float,
+        status_code: int,
+        attempt: int
+    ) -> None:
+        """Track metrics for successful responses."""
+        self.test_logger.response_times.append({
+            'endpoint': url.replace(self.base_url, '').strip('/'),
+            'method': method,
+            'duration': duration,
+            'test_class': self.__class__.__name__,
+            'status_code': status_code,
+            'attempt': attempt
+        })
+
+    def _track_error_metrics(
+        self,
+        url: str,
+        method: str,
+        duration: float,
+        error: Exception,
+        attempt: int
+    ) -> None:
+        """Track metrics for failed requests."""
+        self.test_logger.response_times.append({
+            'endpoint': url.replace(self.base_url, '').strip('/'),
+            'method': method,
+            'duration': duration,
+            'test_class': self.__class__.__name__,
+            'status_code': None,
+            'error': str(error),
+            'attempt': attempt
+        })
+
+    def _should_retry_response(
+        self,
+        response: Response,
+        attempts: int,
+        max_retries: int,
+        retriable_status_codes: List[int]
+    ) -> bool:
+        """Determine if a response should be retried."""
+        return response.status_code in retriable_status_codes and attempts < max_retries
+
+    def _should_retry_exception(self, attempts: int, max_retries: int) -> bool:
+        """Determine if an exception should be retried."""
+        return attempts < max_retries
+
+    def _validate_response(
+        self,
+        response: Response,
+        expected_status: Optional[int],
+        json_check: Optional[dict],
+        max_response_time: Optional[float],
+        duration: float,
+        method: str,
+        url: str
+    ) -> None:
+        """Validate response status and performance."""
         if expected_status is not None:
             self.assert_response(response, expected_status, json_check)
         elif not (200 <= response.status_code < 300):
             self.fail(f"Unexpected status {response.status_code}. Response: {response.text}")
 
         if max_response_time is not None:
-            assertion_msg = (f"Response time {duration:.2f}s exceeds maximum allowed {max_response_time}s "
-                            f"for {method} {url}")
+            assertion_msg = (
+                f"Response time {duration:.2f}s exceeds maximum allowed {max_response_time}s "
+                f"for {method} {url}"
+            )
             self.assertLessEqual(duration, max_response_time, assertion_msg)
 
-        return response
+
 
     def _redact_headers(self, headers: Dict[str, str], sensitive_headers: Optional[List[str]]=None) -> Dict[str, str]:
         """Redact sensitive headers using provided list or defaults."""
