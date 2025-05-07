@@ -7,6 +7,15 @@ import logging
 import sys
 import socket
 import time
+from typing import (
+    Optional, Dict, List, Any, Union, 
+    Type, Literal, TypeVar, Counter, cast
+)
+# Type aliases
+Response = requests.Response
+JSONType = Union[Dict[str, Any], List[Any]]
+
+
 from .report_generator import ReportGenerator
 #from PyTestDocx import LogManager
 from .LogManager import LogManager  
@@ -21,10 +30,10 @@ class BaseAPITest(unittest.TestCase):
     """Base class for API tests with common setup and utilities"""
     
     # Class variables shared across all test cases
-    test_start_time = None  # Timestamp when tests started
-    test_end_time = None    # Timestamp when tests ended
+    test_start_time: Optional[float]  = None  # Timestamp when tests started
+    test_end_time: Optional[float]  = None    # Timestamp when tests ended
     test_logger = LogManager()  # Initialize the logger instance here
-    base_url = os.getenv("BASE_API_URL", "https://test.com")  # Base API URL
+    base_url: str = os.getenv("BASE_API_URL", "https://test.com")  # Base API URL
 
     @classmethod
     def setUpClass(cls):
@@ -60,7 +69,7 @@ class BaseAPITest(unittest.TestCase):
         #     report.generate()
         #     report.save(cls.ERROR_DOCX_FILE)
 
-    def run(self, result=None):
+    def run(self, result: Optional[unittest.TestResult] = None) -> None:
         """Override the default test run method to add custom logging"""
         # Log test attempt
         self.test_logger.log_executed_test(self.id(), "ATTEMPTING")
@@ -87,7 +96,7 @@ class BaseAPITest(unittest.TestCase):
 
 
     @staticmethod
-    def _truncate_long_string(value, max_length=20):
+    def _truncate_long_string(value: Any, max_length: int = 20) -> Any:
         """Truncate strings with long repeating characters to make logs cleaner"""
         if not isinstance(value, str) or len(value) <= max_length:
             return value
@@ -101,7 +110,7 @@ class BaseAPITest(unittest.TestCase):
             return value[:max_length] + "..."
         return value
 
-    def _log_test_failure(self, exception, result):
+    def _log_test_failure(self, exception: Exception, result: unittest.TestResult)-> None:
         """Log detailed information about test failures"""
         test_method = getattr(self, self._testMethodName)
         # Get test description from docstring if available
@@ -149,7 +158,7 @@ class BaseAPITest(unittest.TestCase):
         self.test_logger.log_test_error(log_entry)
 
 
-    def login(self, username=None, password=None, endpoint=None):
+    def login(self, username: Optional[str]=None, password: Optional[str]=None, endpoint: Optional[str]=None) -> Response:
         """Authenticate and store session credentials
         
         Args:
@@ -216,7 +225,7 @@ class BaseAPITest(unittest.TestCase):
             if last_response is not None:
                 return last_response
             raise requests.exceptions.RequestException("Both /login and /authenticate endpoints failed")
-    def assert_response(self, response, expected_status, json_check=None):
+    def assert_response(self, response: Response, expected_status: int, json_check: Optional[Dict[str, Any]]=None) -> None:
         """Universal response assertion with status code and optional JSON validation"""
         self.response = response
 
@@ -240,22 +249,31 @@ class BaseAPITest(unittest.TestCase):
         # If JSON validation is requested and response is successful
         if json_check and response.status_code < 400:
             try:
-                response_data = response.json()
+                response_data: JSONType  = response.json()
                 # Check each key-value pair in json_check
                 for key, value in json_check.items():
                     self.assertEqual(response_data.get(key), value, f"Expected {key}={value}")
             except ValueError:
                 self.fail("Expected JSON response but got non-JSON content")
 
-    def auth_headers(self):
+    def auth_headers(self)-> Dict[str, str]:
         """Get headers with current access token for authenticated requests"""
         return {
             'Authorization': f'Bearer {self.access_token}',
             'Content-Type': 'application/json'
         }
-    def make_request(self, method, url, expected_status=None, json_check=None,
-                    redact_sensitive_keys=True, redact_sensitive_data=True,
-                    sensitive_keys=None, sensitive_headers=None, max_response_time=None, retriable_status_codes=None, **kwargs):
+    def make_request(self, 
+    method: Literal['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'], 
+    url: str, 
+    expected_status: Optional[int]=None, 
+    json_check: Optional[Dict[str, Any]]=None,
+    redact_sensitive_keys: bool=True,
+    redact_sensitive_data: bool=True,
+    sensitive_keys: Optional[List[str]]=None, 
+    sensitive_headers: Optional[List[str]]=None, 
+    max_response_time: Optional[float]=None, 
+    retriable_status_codes: Optional[List[int]]=None,
+     **kwargs: Any) -> Response:
         """Utility method to make API requests with timing, error handling, automatic assertions, and retries.
 
         Args:
@@ -366,7 +384,7 @@ class BaseAPITest(unittest.TestCase):
 
             except requests.exceptions.RequestException as e:
                 duration = time.time() - start_time
-                BaseAPITest._response_times.append({
+                self.test_logger.response_times.append.append({
                     'endpoint': url.replace(self.base_url, '').strip('/'),
                     'method': method,
                     'duration': duration,
@@ -397,13 +415,13 @@ class BaseAPITest(unittest.TestCase):
 
         return response
 
-    def _redact_headers(self, headers, sensitive_headers=None):
+    def _redact_headers(self, headers: Dict[str, str], sensitive_headers: Optional[List[str]]=None) -> Dict[str, str]:
         """Redact sensitive headers using provided list or defaults."""
         default_sensitive_headers = {'Authorization', 'Cookie', 'Set-Cookie', 'X-Auth-Token', 'X-API-Key'}
         sensitive_headers = set(sensitive_headers) if sensitive_headers else default_sensitive_headers
         return {k: '***' if k in sensitive_headers else v for k, v in headers.items()}
 
-    def _redact_sensitive_data(self, data, sensitive_keys=None):
+    def _redact_sensitive_data(self, data: Any, sensitive_keys: Optional[List[str]]=None)-> Any:
         """Recursively redact sensitive values using provided keys or defaults."""
         default_sensitive_keys = {'password', 'token', 'secret', 'api_key', 'authorization'}
         sensitive_keys = set(sensitive_keys) if sensitive_keys else default_sensitive_keys
