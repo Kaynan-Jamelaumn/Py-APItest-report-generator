@@ -5,7 +5,7 @@ import time
 import argparse
 import os
 from PyTestDocx import BaseAPITest, CustomTestResult, CustomTestRunner, ReportGenerator
-
+from PyTestDocx.report import ReportGenerator
 import socket
 import requests
 

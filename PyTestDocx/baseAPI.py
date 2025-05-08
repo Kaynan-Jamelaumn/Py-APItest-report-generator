@@ -15,10 +15,9 @@ from typing import (
 Response = requests.Response
 JSONType = Union[Dict[str, Any], List[Any]]
 
+from PyTestDocx.auth import Authenticator
+from PyTestDocx.report import ReportGenerator, LogManager
 
-from .report_generator import ReportGenerator
-#from PyTestDocx import LogManager
-from .LogManager import LogManager  
 # Configure logging to display INFO level messages -- root logger (only basic config here)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -48,27 +47,7 @@ class BaseAPITest(unittest.TestCase):
     def tearDownClass(cls):
         """Generate report if there are errors - runs after all tests complete"""
         cls.test_end_time = time.time()
-
-        # # If there were errors, generate a report
-        # if cls._test_errors:
-        #     report = ReportGenerator(
-        #         test_errors=cls._test_errors,
-        #         response_times=cls._response_times,
-        #         test_result=cls._result,
-        #         start_time=cls.test_start_time,
-        #         end_time=cls.test_end_time,
-        #         base_url=cls.base_url,
-        #         env_info={
-        #             'python_version': sys.version.split()[0],
-        #             'platform': sys.platform,
-        #             'requests_version': requests.__version__,
-        #             'hostname': socket.gethostname(),
-        #             'cpu_cores': os.cpu_count()
-        #         }
-        #     )
-        #     report.generate()
-        #     report.save(cls.ERROR_DOCX_FILE)
-
+        
     def run(self, result: Optional[unittest.TestResult] = None) -> None:
         """Override the default test run method to add custom logging"""
         # Log test attempt
@@ -93,6 +72,14 @@ class BaseAPITest(unittest.TestCase):
             self.test_logger.log_executed_test(self.id(), f"ERROR ({type(e).__name__})")
         finally:
             result.stopTest(self)
+
+
+    def login(self, username: Optional[str]=None, password: Optional[str]=None, endpoint: Optional[str]=None) -> Response:
+        """Authenticate and store session credentials. See Authenticator.login for full documentation."""
+        return Authenticator.login(self, username, password, endpoint)
+
+
+
 
 
     @staticmethod
@@ -158,73 +145,7 @@ class BaseAPITest(unittest.TestCase):
         self.test_logger.log_test_error(log_entry)
 
 
-    def login(self, username: Optional[str]=None, password: Optional[str]=None, endpoint: Optional[str]=None) -> Response:
-        """Authenticate and store session credentials
-        
-        Args:
-            username (str, optional): Username for authentication. Defaults to .env TEST_USER.
-            password (str, optional): Password for authentication. Defaults to .env TEST_PASSWORD.
-            endpoint (str, optional): Custom auth endpoint path. If None, tries '/login' first,
-                                    then falls back to '/authenticate' if the first attempt fails.
-                                    If provided, only tries the specified endpoint.
-        
-        Returns:
-            requests.Response: Authentication response
-        
-        Raises:
-            ValueError: If credentials are missing
-            requests.exceptions.RequestException: If all attempts fail (when endpoint=None)
-        """
-        # Use provided credentials or fall back to .env file
-        payload = {
-            'login': username or os.getenv('TEST_USER'),
-            'password': password or os.getenv('TEST_PASSWORD')
-        }
 
-        # Validate we have credentials
-        if not all(payload.values()):
-            raise ValueError("Missing credentials in .env file")
-
-        self._request_body = payload
-        
-        if endpoint is not None:
-            # Only try the specified endpoint
-            url = f"{self.base_url}{endpoint}" if not endpoint.startswith('http') else endpoint
-            response = self.session.post(url, json=payload, headers=self.headers)
-            self.response = response
-            
-            if response.ok:
-                data = response.json()
-                self.access_token = data.get('api_jwt', {}).get('access_token')
-                self.user_id = data.get('user', {}).get('id')
-            return response
-        else:
-            # Try default endpoints in sequence
-            endpoints_to_try = ['/login', '/authenticate']
-            last_response = None
-            
-            for auth_endpoint in endpoints_to_try:
-                url = f"{self.base_url}{auth_endpoint}"
-                try:
-                    response = self.session.post(url, json=payload, headers=self.headers)
-                    self.response = response
-                    
-                    if response.ok:
-                        data = response.json()
-                        self.access_token = data.get('api_jwt', {}).get('access_token')
-                        self.user_id = data.get('user', {}).get('id')
-                        return response
-                        
-                    last_response = response
-                    
-                except requests.exceptions.RequestException as e:
-                    logger.warning(f"Authentication attempt failed for {url}: {str(e)}")
-                    continue
-            
-            # If we get here, all attempts failed
-            if last_response is not None:
-                return last_response
-            raise requests.exceptions.RequestException("Both /login and /authenticate endpoints failed")
     def assert_response(self, response: Response, expected_status: int, json_check: Optional[Dict[str, Any]]=None) -> None:
         """Universal response assertion with status code and optional JSON validation"""
         self.response = response
