@@ -71,3 +71,18 @@ class Authenticator:
             if last_response is not None:
                 return last_response
             raise RequestException("Both /login and /authenticate endpoints failed")
+
+    @staticmethod
+    def get_auth_headers(test_instance) -> Dict[str, str]:
+        """Get headers with current access token for authenticated requests
+        
+        Args:
+            test_instance (BaseAPITest): Instance of the test class requiring authentication headers
+            
+        Returns:
+            Dict[str, str]: Dictionary containing Authorization and Content-Type headers
+        """
+        return {
+            'Authorization': f'Bearer {test_instance.access_token}',
+            'Content-Type': 'application/json'
+        }
