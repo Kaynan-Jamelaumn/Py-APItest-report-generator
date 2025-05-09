@@ -82,12 +82,26 @@ def main():
     test_statuses = []
     false_positives = []  # Track false positives separately
 
-
     for test in all_tests:
         test_id = test.id()
         status = "Passed"
         is_false_positive = False
+        duration = 0.0  # Default duration
         
+        # Get test duration if available (from CustomTestResult)
+        # if hasattr(test, '_test_run_time'):
+        #     duration = test._test_run_time
+        # elif hasattr(result, 'test_times') and test_id in result.test_times:
+        #     duration = result.test_times[test_id]
+        # elif hasattr(test, 'duration'):  # From test case itself
+        #     duration = test.duration
+
+        duration = getattr(result, 'test_times', {}).get(test_id, 0.0)
+        if hasattr(test, '_test_run_time'):  # Fallback to test attribute
+            duration = test._test_run_time
+
+
+
         # Check if the test failed
         for failed_test, error_msg in result.failures + result.errors:
             if test_id == failed_test.id():
@@ -105,8 +119,10 @@ def main():
             'id': test_id.split('.')[-1],
             'name': test_id,
             'status': status,
-            'is_false_positive': is_false_positive  # Flag for later analysis
+            'duration': duration,  # Add duration to the test status
+            'is_false_positive': is_false_positive
         })
+
     # Generate the report
     env_info = {
         'python_version': sys.version.split()[0],

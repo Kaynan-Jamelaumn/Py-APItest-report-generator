@@ -323,7 +323,7 @@ class ReportGenerator:
     def _add_test_case_list(self):
         """Add detailed table of all test cases with status"""
         self.doc.add_heading('Detailed Test Cases', level=1)
-        table = self.doc.add_table(rows=1, cols=3)
+        table = self.doc.add_table(rows=1, cols=4)
         table.style = 'Table Grid'
         
         # Header
@@ -331,7 +331,7 @@ class ReportGenerator:
         hdr[0].text = 'Test Case ID'
         hdr[1].text = 'Test Name'
         hdr[2].text = 'Status'
-
+        hdr[3].text = 'Duration (s)'
         # Populate data (assuming test_statuses is passed to ReportGenerator)
         for test in self.test_statuses:
             row = table.add_row().cells
@@ -340,10 +340,15 @@ class ReportGenerator:
             
             status = row[2].paragraphs[0].add_run(test['status'])
             status.bold = True
+        
+            # Color coding
             if test['status'] == 'Failed':
                 status.font.color.rgb = RGBColor(0xFF, 0x00, 0x00)
             else:
                 status.font.color.rgb = RGBColor(0x00, 0x80, 0x00)
+            
+            # Always show duration, formatted to 3 decimal places
+            row[3].text = f"{test['duration']:.3f}"
 
     def _add_response_time_stats(self):
         """Add table with response time statistics"""
