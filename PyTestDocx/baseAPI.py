@@ -16,7 +16,7 @@ Response = requests.Response
 JSONType = Union[Dict[str, Any], List[Any]]
 
 from PyTestDocx.auth import Authenticator
-from PyTestDocx.report import ReportGenerator, LogManager
+from PyTestDocx.report import LogManager
 from PyTestDocx.RequestManager import RequestManager
 
 # Configure logging to display INFO level messages -- root logger (only basic config here)

@@ -8,6 +8,9 @@ import logging
 import time
 import os
 
+from docx.enum.section import WD_SECTION
+
+
 logger = logging.getLogger(__name__)
 
 class ReportGenerator:
@@ -61,25 +64,44 @@ class ReportGenerator:
         self._add_header()  # Add report title
         self._add_footer()  # Add page numbering
 
+
+
     def _add_header(self):
         """Add styled document header with title and timestamp"""
         # Main report title
-        header = self.doc.add_heading('API Test Automation Report', level=0)
-        header_run = header.runs[0]
-        header_run.font.color.rgb = RGBColor(0x00, 0x33, 0x66)  # Dark blue
-        header_run.font.size = Pt(16)
-        header_run.bold = True
+        section = self.doc.sections[0]
+        section.different_first_page_header_footer = True
         
+        # Title
+        title = self.doc.add_paragraph()
+        title_run = title.add_run("AUTOMATED TEST REPORT\n")
+        title_run.font.size = Pt(28)
+        title_run.font.color.rgb = RGBColor(0x2C, 0x3E, 0x50)  # Dark blue
+        title_run.bold = True
+        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
         # Subtitle
-        subheader = self.doc.add_heading('Test Execution Summary', level=1)
-        subheader_run = subheader.runs[0]
-        subheader_run.font.color.rgb = RGBColor(0x1E, 0x90, 0xFF)  # Dodger blue
-        subheader_run.font.size = Pt(12)
-        
-        # Timestamp
-        current_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
-        timestamp = self.doc.add_paragraph(f"Report generated on: {current_time}")
-        timestamp.style = self.doc.styles['Intense Quote']
+        subtitle = self.doc.add_paragraph()
+        subtitle_run = subtitle.add_run("Quality Assurance Department\n\n")
+        subtitle_run.font.size = Pt(18)
+        subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        # Decorative line
+        line = self.doc.add_paragraph()
+        line_run = line.add_run()
+        line_run.add_break()
+        line.border_bottom = True
+
+        # Report Date
+        date_str = time.strftime('%B %d, %Y %H:%M:%S', time.localtime() )
+        date_para = self.doc.add_paragraph()
+        date_run = date_para.add_run(f"Generated on: {date_str}")
+        date_run.italic = True
+        date_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        # Page break to content
+        self.doc.add_page_break()
+
 
     def _add_footer(self):
         """Add page number footer to document"""
