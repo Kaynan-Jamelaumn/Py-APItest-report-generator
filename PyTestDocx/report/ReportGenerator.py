@@ -51,6 +51,7 @@ class ReportGenerator:
         self._add_summary_table()     # Add test summary table
         self._add_summary_chart()     # Add pie chart visualization
         self._add_response_time_chart()  # Add response time analysis
+        self._add_response_time_stats() # avarage time, max and min time
         self._add_test_case_list()      # List Of All the Tests wish passes and fails
         self._add_environment_info()  # Add environment details
         self._add_execution_info()    # Add timing information
@@ -103,31 +104,6 @@ class ReportGenerator:
 
         # Page break to content
         self.doc.add_page_break()
-
-    def _add_test_case_list(self):
-        """Add detailed table of all test cases with status"""
-        self.doc.add_heading('Detailed Test Cases', level=1)
-        table = self.doc.add_table(rows=1, cols=3)
-        table.style = 'Table Grid'
-        
-        # Header
-        hdr = table.rows[0].cells
-        hdr[0].text = 'Test Case ID'
-        hdr[1].text = 'Test Name'
-        hdr[2].text = 'Status'
-
-        # Populate data (assuming test_statuses is passed to ReportGenerator)
-        for test in self.test_statuses:
-            row = table.add_row().cells
-            row[0].text = test['id']
-            row[1].text = test['name']
-            
-            status = row[2].paragraphs[0].add_run(test['status'])
-            status.bold = True
-            if test['status'] == 'Failed':
-                status.font.color.rgb = RGBColor(0xFF, 0x00, 0x00)
-            else:
-                status.font.color.rgb = RGBColor(0x00, 0x80, 0x00)
 
     def _add_footer(self):
         """Add page number footer to document"""
@@ -238,6 +214,57 @@ class ReportGenerator:
         except Exception as e:
             logger.error(f"Failed to generate response time chart: {str(e)}")
             raise  # Re-raise to see error in test output
+
+
+    def _add_test_case_list(self):
+        """Add detailed table of all test cases with status"""
+        self.doc.add_heading('Detailed Test Cases', level=1)
+        table = self.doc.add_table(rows=1, cols=3)
+        table.style = 'Table Grid'
+        
+        # Header
+        hdr = table.rows[0].cells
+        hdr[0].text = 'Test Case ID'
+        hdr[1].text = 'Test Name'
+        hdr[2].text = 'Status'
+
+        # Populate data (assuming test_statuses is passed to ReportGenerator)
+        for test in self.test_statuses:
+            row = table.add_row().cells
+            row[0].text = test['id']
+            row[1].text = test['name']
+            
+            status = row[2].paragraphs[0].add_run(test['status'])
+            status.bold = True
+            if test['status'] == 'Failed':
+                status.font.color.rgb = RGBColor(0xFF, 0x00, 0x00)
+            else:
+                status.font.color.rgb = RGBColor(0x00, 0x80, 0x00)
+
+    def _add_response_time_stats(self):
+        """Add table with response time statistics"""
+        if not self.response_times:
+            return
+
+        stats = {
+            'Average': sum(rt['duration'] for rt in self.response_times)/len(self.response_times),
+            'Max': max(rt['duration'] for rt in self.response_times),
+            'Min': min(rt['duration'] for rt in self.response_times)
+        }
+
+        self.doc.add_heading('Response Time Statistics', level=2)
+        table = self.doc.add_table(rows=3, cols=2)
+        table.style = 'Light Grid Accent 1'
+        
+        for i, (label, value) in enumerate(stats.items()):
+            table.rows[i].cells[0].text = label
+            table.rows[i].cells[1].text = f"{value:.2f} sec"
+
+
+
+
+
+
     def _add_environment_info(self):
         """Add table showing test environment details"""
         self.doc.add_heading('Environment Information', level=1)
