@@ -77,6 +77,22 @@ def main():
     # Capture end time after all tests complete
     end_time = time.time()
     
+
+    # Collect test statuses for detailed reporting
+    test_statuses = []
+    for test in all_tests:
+        test_id = test.id()
+        status = "Passed"
+        for failed_test, _ in result.failures + result.errors:
+            if test_id == failed_test.id():
+                status = "Failed"
+                break
+        test_statuses.append({
+            'id': test_id.split('.')[-1],  # Just the method name
+            'name': test_id,              # Full test path
+            'status': status
+        })
+
     # Generate the report
     env_info = {
         'python_version': sys.version.split()[0],
@@ -90,6 +106,7 @@ def main():
         test_errors=BaseAPITest.test_logger.test_errors,  # Access through the logger instance
         response_times=BaseAPITest.test_logger.response_times,  # Also moved to logger
         test_result=result,
+        test_statuses=test_statuses,
         start_time=BaseAPITest.test_start_time,
         end_time=end_time,
         base_url=BaseAPITest.base_url,
