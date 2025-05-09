@@ -9,28 +9,31 @@ import time
 import os
 
 from docx.enum.section import WD_SECTION
-
+from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
 class ReportGenerator:
     """Generates comprehensive Word document reports for API test results"""
     
-    def __init__(self, test_errors, response_times, test_result, 
+    def __init__(self, test_errors, false_positives, response_times, test_result, 
                  test_statuses, start_time, end_time, base_url, env_info):
         """
         Initialize report generator with test data
         
         Args:
             test_errors (list): List of error messages from failed tests
+            false_positives (list): track false positive error tests
             response_times (list): List of API response times
             test_result (unittest.TestResult): Test execution results
+            test_statuses (list): list of the tests and it's statuses(passes and fails)
             start_time (float): Test execution start timestamp
             end_time (float): Test execution end timestamp
             base_url (str): Base API URL tested
             env_info (dict): Environment information
         """
         self.test_errors = test_errors
+        self.false_positives = false_positives
         self.response_times = response_times
         self.test_result = test_result
         self.test_statuses = test_statuses
@@ -50,6 +53,7 @@ class ReportGenerator:
         self._create_base_document()  # Initialize document structure
         self._add_summary_table()     # Add test summary table
         self._add_summary_chart()     # Add pie chart visualization
+        self._analyze_failures() # Add tests passed and failed charts diving the errors
         self._add_response_time_chart()  # Add response time analysis
         self._add_response_time_stats() # avarage time, max and min time
         self._add_test_case_list()      # List Of All the Tests wish passes and fails
@@ -174,6 +178,106 @@ class ReportGenerator:
         except Exception as e:
             logger.error(f"Failed to generate chart: {str(e)}")
 
+    def _analyze_failures(self):
+        """Categorize failures and generate a visualization chart"""
+        error_types = defaultdict(int)
+        
+        # Classify errors
+        for error in self.test_errors:
+            if "400" in str(error):
+                error_types["Bad Request (400)"] += 1
+            elif "401" in str(error):
+                error_types["Unauthorized (401)"] += 1
+            elif "404" in str(error):
+                error_types["Not Found (404)"] += 1
+            elif "500" in str(error):
+                error_types["Server Error (500)"] += 1
+            elif "Timeout" in str(error):
+                error_types["Timeout"] += 1
+            else:
+                error_types["Other Errors"] += 1
+        
+        # Add false positives if they exist
+        if hasattr(self, 'false_positives') and self.false_positives:
+            error_types["False Positives (200)"] = len(self.false_positives)
+        
+        
+        # Always show the table (even if empty)
+        self._display_failure_table(error_types)
+
+        # Generate the chart only if there are failures
+        if error_types:
+            self._generate_failure_chart(error_types)
+
+    def _generate_failure_chart(self, error_types):
+        """Generate a pie/donut chart of failure distribution"""
+        try:
+            import matplotlib.pyplot as plt
+            
+            # Prepare data
+            labels = list(error_types.keys())
+            sizes = list(error_types.values())
+            colors = ['#FF5252', '#FFA500', '#FFD700', '#FF6347', '#9370DB', '#69B4FF']
+            
+            # Create figure
+            fig, ax = plt.subplots(figsize=(8, 6))
+            
+            # Use a donut chart for better readability
+            wedges, texts, autotexts = ax.pie(
+                sizes, 
+                labels=labels, 
+                colors=colors,
+                autopct='%1.1f%%',
+                startangle=90,
+                wedgeprops={'width': 0.4},  # Makes it a donut
+                textprops={'fontsize': 8}
+            )
+            
+            # Equal aspect ratio ensures the pie is circular
+            ax.axis('equal')  
+            plt.title('Failure Type Distribution', pad=20)
+            
+            # Save to temporary file
+            chart_path = "failure_analysis_chart.png"
+            plt.savefig(chart_path, bbox_inches='tight', dpi=150)
+            plt.close(fig)
+            
+            # Insert into document
+            self.doc.add_paragraph("Failure Analysis Chart:", style="Heading 3")
+            self.doc.add_picture(chart_path, width=Pt(400))  # Adjust width as needed
+            
+            # Clean up
+            os.remove(chart_path)
+            
+        except Exception as e:
+            logger.error(f"Failed to generate failure chart: {str(e)}")
+            self.doc.add_paragraph(
+                f"⚠ Could not generate chart: {str(e)}", 
+                style="Intense Quote"
+            )
+
+    def _display_failure_table(self, error_types):
+        """Display failure statistics in a table"""
+        self.doc.add_paragraph("Failure Statistics:", style="Heading 3")
+        
+        table = self.doc.add_table(rows=len(error_types)+1, cols=2)
+        table.style = "Light Grid Accent 1"
+        
+        # Header
+        table.cell(0, 0).text = "Error Type"
+        table.cell(0, 1).text = "Count"
+        
+        # Data rows
+        for i, (error_type, count) in enumerate(error_types.items(), 1):
+            table.cell(i, 0).text = error_type
+            table.cell(i, 1).text = str(count)
+            
+            # Highlight false positives
+            if "False Positives" in error_type:
+                table.cell(i, 1).font.color.rgb = RGBColor(255, 165, 0)  # Orange
+
+
+
     def _add_response_time_chart(self):
         """Generate and insert histogram of API response times grouped by endpoint"""
         try:
@@ -259,11 +363,7 @@ class ReportGenerator:
         for i, (label, value) in enumerate(stats.items()):
             table.rows[i].cells[0].text = label
             table.rows[i].cells[1].text = f"{value:.2f} sec"
-
-
-
-
-
+            
 
     def _add_environment_info(self):
         """Add table showing test environment details"""

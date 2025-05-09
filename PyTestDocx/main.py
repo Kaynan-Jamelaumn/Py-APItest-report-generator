@@ -80,19 +80,33 @@ def main():
 
     # Collect test statuses for detailed reporting
     test_statuses = []
+    false_positives = []  # Track false positives separately
+
+
     for test in all_tests:
         test_id = test.id()
         status = "Passed"
-        for failed_test, _ in result.failures + result.errors:
+        is_false_positive = False
+        
+        # Check if the test failed
+        for failed_test, error_msg in result.failures + result.errors:
             if test_id == failed_test.id():
                 status = "Failed"
+                # Detect false positives (200 OK but test expected failure)
+                if "200" in str(error_msg) and "AssertionError" in str(error_msg):
+                    is_false_positive = True
+                    false_positives.append({
+                        'test_id': test_id,
+                        'error': str(error_msg)
+                    })
                 break
+        
         test_statuses.append({
-            'id': test_id.split('.')[-1],  # Just the method name
-            'name': test_id,              # Full test path
-            'status': status
+            'id': test_id.split('.')[-1],
+            'name': test_id,
+            'status': status,
+            'is_false_positive': is_false_positive  # Flag for later analysis
         })
-
     # Generate the report
     env_info = {
         'python_version': sys.version.split()[0],
@@ -104,6 +118,7 @@ def main():
     
     report = ReportGenerator(
         test_errors=BaseAPITest.test_logger.test_errors,  # Access through the logger instance
+        false_positives=false_positives,  #pass the false postive tests
         response_times=BaseAPITest.test_logger.response_times,  # Also moved to logger
         test_result=result,
         test_statuses=test_statuses,
