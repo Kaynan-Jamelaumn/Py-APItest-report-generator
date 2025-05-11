@@ -133,24 +133,71 @@ class ReportGenerator:
 
     def _add_summary_table(self):
         """Add table showing test pass/fail summary"""
-        table = self.doc.add_table(rows=1, cols=3)
-        table.style = self.doc.styles['Light Shading Accent 1']  # Use style name instead of style_id
+        table = self.doc.add_table(rows=2, cols=5)
+        table.style = 'Light Grid Accent 1'
         
-        # Header row
+        # Header row with styling
         hdr_cells = table.rows[0].cells
-        hdr_cells[0].text = 'Total Tests'
-        hdr_cells[1].text = 'Passed'
-        hdr_cells[2].text = 'Failed'
+        headers = [
+            ('Total Tests', ''),
+            ('Passed', '4CAF50'),  # Green
+            ('Failed', 'FF5252'),   # Red
+            ('Pass Rate', '2196F3'), # Blue
+            ('False Positives', 'FFA500') # Orange
+        ]
         
-        # Data row
-        row_cells = table.add_row().cells
+        for i, (text, color) in enumerate(headers):
+            hdr_cells[i].text = text
+            if color:
+                hdr_cells[i].paragraphs[0].runs[0].font.color.rgb = RGBColor.from_string(color)
+            hdr_cells[i].paragraphs[0].runs[0].bold = True
+        
+        # Data row with conditional formatting
+        row_cells = table.rows[1].cells
+        
+        # Total Tests
         row_cells[0].text = str(self.total_tests)
-        row_cells[1].text = str(self.passed)
-        row_cells[2].text = str(self.failed)
         
-        # Color coding for passed/failed counts
-        row_cells[1].paragraphs[0].runs[0].font.color.rgb = RGBColor(0x00, 0x80, 0x00)  # Green
-        row_cells[2].paragraphs[0].runs[0].font.color.rgb = RGBColor(0xFF, 0x00, 0x00)  # Red
+        # Passed (green)
+        passed_cell = row_cells[1]
+        passed_cell.text = str(self.passed)
+        passed_cell.paragraphs[0].runs[0].font.color.rgb = RGBColor(0x00, 0x80, 0x00) # Pure Green (success color)
+        
+        # Failed (red with conditional intensity)
+        failed_cell = row_cells[2]
+        failed_cell.text = str(self.failed)
+        fail_color = RGBColor(0xFF, 0x00, 0x00) if self.failed > 0 else RGBColor(0x99, 0x00, 0x00) #  Bright Red (when failures > 0)  Darker Red (when no failures)
+        failed_cell.paragraphs[0].runs[0].font.color.rgb = fail_color
+        
+        # Pass Rate (percentage with icon)
+        pass_rate = (self.passed / self.total_tests) * 100 if self.total_tests > 0 else 0
+        pass_rate_cell = row_cells[3]
+        pass_rate_cell.text = f"{pass_rate:.1f}%"
+        
+        # Color based on pass rate threshold
+        if pass_rate >= 90:
+            pass_rate_cell.paragraphs[0].runs[0].font.color.rgb = RGBColor(0x00, 0x80, 0x00) # Green (excellent performance)
+        elif pass_rate >= 70:
+            pass_rate_cell.paragraphs[0].runs[0].font.color.rgb = RGBColor(0xFF, 0xA5, 0x00) # Orange (warning/needs review)
+            pass_rate_cell.paragraphs[0].runs[0].font.color.rgb = RGBColor(0xFF, 0x00, 0x00) # Red (critical condition)
+        
+        # False Positives
+        fp_count = len(self.false_positives)
+        fp_cell = row_cells[4]
+        fp_cell.text = str(fp_count)
+        if fp_count > 0:
+            fp_cell.paragraphs[0].runs[0].font.color.rgb = RGBColor(0xFF, 0xA5, 0x00)  # Orange
+        
+        # Add contextual note
+        if fp_count > 0:
+            note = self.doc.add_paragraph()
+            note.add_run("Note: ").bold = True
+            note.add_run(f"{fp_count} test(s) returned 200 status but failed assertions")
+            note.runs[0].font.color.rgb = RGBColor(0xFF, 0xA5, 0x00)
+            note.style = 'Intense Quote'
+        
+        # Add visual separator
+        self.doc.add_paragraph().add_run().add_break()
 
     def _add_summary_chart(self):
         """Generate and insert pie chart showing test results"""
