@@ -28,10 +28,17 @@ python -m venv venv
 pip install -r requirements.txt
 ```
 
+### install the py-test (since currently is still in development and a  local dependency you have to "fake install it locally")
+### if you are inside this repository "."  to collect the PyTestDocx
+```bash
+pip install -e . 
+
+```
+
 
 ### Run the tests 
 ```bash
-python main.py --test-dir <path-to-your-test-directory>
+pytx  --test-dir <path-to-your-test-directory>
 
 ```
 
