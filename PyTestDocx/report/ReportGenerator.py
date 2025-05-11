@@ -108,9 +108,9 @@ class ReportGenerator:
 
         # Project metadata
         meta = self.doc.add_paragraph()
-        meta.add_run(f"\nProject: {self.env_info.get('project_name', 'N/A')}\n")
-        meta.add_run(f"Environment: {self.env_info.get('environment', 'Staging')}\n")
-        meta.add_run(f"Test Cycle: {self.env_info.get('test_cycle', 'Regression')}\n")
+        meta.add_run(f"\nProject: { os.getenv('PROJECT_NAME', 'N/A')}\n")
+        meta.add_run(f"Environment: { os.getenv('ENVIROMENT', 'Staging')}\n")
+        meta.add_run(f"Test Cycle: { os.getenv('TEST_CYCLE', 'Regression')}\n")
         meta.alignment = WD_ALIGN_PARAGRAPH.CENTER
         meta.runs[0].font.size = Pt(14)
 

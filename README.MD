@@ -39,6 +39,17 @@ pip install -e .
 ### Run the tests 
 ```bash
 pytx  --test-dir <path-to-your-test-directory>
+```
+### Fields to use on .env
+
+```bash
+BASE_API_URL="https://test.com" # Base API URL
+TEST_USER="username" #for login
+TEST_PASSWORD="password" 
+PROJECT_NAME="Tests?" #project meta data
+ENVIROMENT="Staging?"
+TEST_CYCLE="IG Regression?"
+
 
 ```
 
