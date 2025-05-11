@@ -1,14 +1,13 @@
 from docx import Document
-from docx.shared import RGBColor, Pt
+from docx.shared import RGBColor, Pt, Inches
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
-from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
+from docx.enum.table import WD_ROW_HEIGHT, WD_TABLE_ALIGNMENT
 import matplotlib.pyplot as plt
 import logging
 import time
 import os
-
-from docx.enum.section import WD_SECTION
 from collections import defaultdict
 
 logger = logging.getLogger(__name__)
@@ -72,7 +71,6 @@ class ReportGenerator:
         self._add_footer()  # Add page numbering
 
 
-
     def _add_header(self):
         """Add styled document header with title and timestamp"""
         # Main report title
@@ -98,6 +96,24 @@ class ReportGenerator:
         line_run = line.add_run()
         line_run.add_break()
         line.border_bottom = True
+
+        # Add logo
+        try:
+            self.doc.add_picture('logo.png', width=Inches(2))
+            self.doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        except FileNotFoundError:
+            logger.warning("Company logo not found, skipping cover page image")
+
+
+
+        # Project metadata
+        meta = self.doc.add_paragraph()
+        meta.add_run(f"\nProject: {self.env_info.get('project_name', 'N/A')}\n")
+        meta.add_run(f"Environment: {self.env_info.get('environment', 'Staging')}\n")
+        meta.add_run(f"Test Cycle: {self.env_info.get('test_cycle', 'Regression')}\n")
+        meta.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        meta.runs[0].font.size = Pt(14)
+
 
         # Report Date
         date_str = time.strftime('%B %d, %Y %H:%M:%S', time.localtime() )
