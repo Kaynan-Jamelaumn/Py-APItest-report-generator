@@ -12,7 +12,7 @@ from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
-class ReportGenerator:
+class DocxReportGenerator:
     """Generates comprehensive Word document reports for API test results"""
     
     def __init__(self, test_errors, false_positives, response_times, test_result, 
@@ -395,7 +395,7 @@ class ReportGenerator:
         hdr[1].text = 'Test Name'
         hdr[2].text = 'Status'
         hdr[3].text = 'Duration (s)'
-        # Populate data (assuming test_statuses is passed to ReportGenerator)
+        # Populate data
         for test in self.test_statuses:
             row = table.add_row().cells
             row[0].text = test['id']
@@ -416,21 +416,47 @@ class ReportGenerator:
     def _add_response_time_stats(self):
         """Add table with response time statistics"""
         if not self.response_times:
+            return  # Exit if no response time data
+
+        # Collect valid durations, handling possible invalid entries
+        durations = []
+        for entry in self.response_times:
+            try:
+                duration = float(entry['duration'])
+                durations.append(duration)
+            except (KeyError, ValueError) as e:
+                logger.error(f"Ignoring invalid duration entry: {e}")
+                continue
+
+        if not durations:
+            logger.warning("No valid duration data available for statistics")
             return
 
-        stats = {
-            'Average': sum(rt['duration'] for rt in self.response_times)/len(self.response_times),
-            'Max': max(rt['duration'] for rt in self.response_times),
-            'Min': min(rt['duration'] for rt in self.response_times)
-        }
+        # Calculate statistics
+        try:
+            avg_duration = sum(durations) / len(durations)
+            max_duration = max(durations)
+            min_duration = min(durations)
+        except Exception as e:
+            logger.error(f"Error calculating stats: {e}")
+            return
 
+        # Add section to document
         self.doc.add_heading('Response Time Statistics', level=2)
         table = self.doc.add_table(rows=3, cols=2)
         table.style = 'Light Grid Accent 1'
-        
-        for i, (label, value) in enumerate(stats.items()):
-            table.rows[i].cells[0].text = label
-            table.rows[i].cells[1].text = f"{value:.2f} sec"
+
+        # Populate table
+        stats = [
+            ('Average', avg_duration),
+            ('Max', max_duration),
+            ('Min', min_duration)
+        ]
+
+        for i, (label, value) in enumerate(stats):
+            row_cells = table.rows[i].cells
+            row_cells[0].text = label
+            row_cells[1].text = f"{value:.2f} sec"
             
 
     def _add_environment_info(self):

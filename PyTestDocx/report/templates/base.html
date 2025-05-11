@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Report - {{ meta.project }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.0.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.1.0"></script>
+    <style>
+        .card { margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .chart-container { position: relative; height: 400px; }
+        .error-details { cursor: pointer; }
+        .error-content { display: none; }
+        .test-case-list { max-height: 500px; overflow-y: auto; }
+        .status-badge { padding: 4px 8px; border-radius: 4px; }
+        .passed { background-color: #d4edda; color: #155724; }
+        .failed { background-color: #f8d7da; color: #721c24; }
+        .info-table { width: 100%; }
+        .info-table td { padding: 8px; border-bottom: 1px solid #eee; }
+        .response-time-chart { height: 300px; }
+        .false-positive { background-color: #fff3cd; color: #856404; }
+        .stat-number { font-weight: 500; color: #2c3e50; }
+        .percentile-badge { 
+            background-color: #e9ecef;
+            color: #495057;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-right: 5px;
+            font-family: monospace;
+        }
+        .timeline-chart { height: 350px; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- Header Section -->
+        <header class="my-5 text-center">
+            <h1 class="display-4">Automated Test Report</h1>
+            <p class="lead">Quality Assurance Department</p>
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Project Overview</h5>
+                            <p class="card-text">
+                                <strong>Project:</strong> {{ meta.project }}<br>
+                                <strong>Environment:</strong> {{ meta.environment }}<br>
+                                <strong>Base URL:</strong> {{ meta.base_url }}<br>
+                                <strong>Generated:</strong> {{ meta.generated }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Summary Cards -->
+        <section class="row mb-5">
+            <div class="col-md-3">
+                <div class="card text-white bg-primary">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Tests</h5>
+                        <p class="card-text display-4">{{ summary.total }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-success">
+                    <div class="card-body">
+                        <h5 class="card-title">Passed</h5>
+                        <p class="card-text display-4">{{ summary.passed }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-danger">
+                    <div class="card-body">
+                        <h5 class="card-title">Failed</h5>
+                        <p class="card-text display-4">{{ summary.failed }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-warning">
+                    <div class="card-body">
+                        <h5 class="card-title">Pass Rate</h5>
+                        <p class="card-text display-4">{{ "%.1f"|format(summary.pass_rate) }}%</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Execution & Performance Information -->
+        <section class="mb-5">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Execution & Performance Metrics</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="info-table">
+                                <tr>
+                                    <td width="40%"><strong>Start Time</strong></td>
+                                    <td>{{ execution.start }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>End Time</strong></td>
+                                    <td>{{ execution.end }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Total Duration</strong></td>
+                                    <td>{{ execution.human_duration }}<br>
+                                        <small>{{ "%.2f"|format(execution.duration) }} seconds</small>
+                                    </td>
+                                </tr>
+                                {% if response_stats %}
+                                <tr>
+                                    <td><strong>Fastest Response</strong></td>
+                                    <td class="stat-number">{{ "%.3f"|format(response_stats.min) }}s</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Slowest Response</strong></td>
+                                    <td class="stat-number">{{ "%.3f"|format(response_stats.max) }}s</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Median Response</strong></td>
+                                    <td class="stat-number">{{ "%.3f"|format(response_stats.median) }}s</td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            {% if response_stats %}
+                            <div class="timeline-chart">
+                                <canvas id="executionTimelineChart"></canvas>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Detailed Response Statistics -->
+        {% if response_stats %}
+        <section class="mb-5">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Detailed Response Analysis</h5>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <table class="info-table">
+                                <tr>
+                                    <td><strong>Average Response</strong></td>
+                                    <td class="stat-number">{{ "%.3f"|format(response_stats.average) }}s</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Total Requests</strong></td>
+                                    <td class="stat-number">{{ response_stats.count }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Percentiles</strong></td>
+                                    <td>
+                                        <span class="percentile-badge">P90: {{ "%.3f"|format(response_stats.percentiles.p90) }}s</span><br>
+                                        <span class="percentile-badge">P95: {{ "%.3f"|format(response_stats.percentiles.p95) }}s</span><br>
+                                        <span class="percentile-badge">P99: {{ "%.3f"|format(response_stats.percentiles.p99) }}s</span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="response-time-chart">
+                                <canvas id="responseHistogram"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Environment Information -->
+        <section class="mb-5">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Environment Information</h5>
+                    <table class="info-table">
+                        <tr>
+                            <td width="30%"><strong>Python Version</strong></td>
+                            <td>{{ environment.python_version }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Platform</strong></td>
+                            <td>{{ environment.platform }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Requests Version</strong></td>
+                            <td>{{ environment.requests_version }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Hostname</strong></td>
+                            <td>{{ environment.hostname }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>CPU Cores</strong></td>
+                            <td>{{ environment.cpu_cores }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Base API URL</strong></td>
+                            <td>{{ environment.base_url }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Test Cases List -->
+        <section class="mb-5">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Test Cases</h5>
+                    <div class="test-case-list">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Test Case ID</th>
+                                    <th>Test Name</th>
+                                    <th>Status</th>
+                                    <th>Duration</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for test in test_cases %}
+                                <tr>
+                                    <td>{{ test.id }}</td>
+                                    <td>{{ test.name }}</td>
+                                    <td>
+                                        <span class="status-badge {{ 'passed' if test.status == 'Passed' else 'failed' }}">
+                                            {{ test.status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ "%.3f"|format(test.duration) }}s</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- False Positives -->
+        {% if false_positives %}
+        <section class="mb-5">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">False Positives ({{ false_positives|length }})</h5>
+                    <div class="alert alert-warning">
+                        These tests returned 200 status but failed assertions
+                    </div>
+                    <div class="test-case-list">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Test Case</th>
+                                    <th>Error</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for fp in false_positives %}
+                                <tr class="false-positive">
+                                    <td>{{ fp.test_id }}</td>
+                                    <td>{{ fp.error[:200] }}{% if fp.error|length > 200 %}...{% endif %}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Error Details -->
+        <section class="mb-5">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Error Details ({{ errors|length }})</h5>
+                    <div id="errorAccordion">
+                        {% for error in errors %}
+                        <div class="error-details card mb-2">
+                            <div class="card-header" 
+                                 onclick="toggleError('error{{ loop.index }}')">
+                                Error #{{ loop.index }} - {{ error.split('\n')[0][:100] }}...
+                            </div>
+                            <div id="error{{ loop.index }}" class="error-content card-body">
+                                <pre>{{ error }}</pre>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Execution Timeline Chart
+        {% if response_stats and charts.response_times %}
+        const timelineCtx = document.getElementById('executionTimelineChart').getContext('2d');
+        new Chart(timelineCtx, {
+            type: 'line',
+            data: {
+                datasets: [{
+                    label: 'Response Times',
+                    data: {{ charts.response_times|map(attribute='duration')|list|tojson }},
+                    borderColor: '#4CAF50',
+                    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                    tension: 0.2,
+                    pointRadius: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: { 
+                            display: true, 
+                            text: 'Response Time (seconds)' 
+                        }
+                    },
+                    x: {
+                        type: 'linear',
+                        title: { 
+                            display: true, 
+                            text: 'Request Sequence' 
+                        }
+                    }
+                }
+            }
+        });
+
+        // Response Time Histogram
+        const histCtx = document.getElementById('responseHistogram').getContext('2d');
+        const durations = {{ charts.response_times|map(attribute='duration')|list|tojson }};
+        const maxDuration = {{ response_stats.max }};
+        const binCount = 10;
+        
+        new Chart(histCtx, {
+            type: 'bar',
+            data: {
+                labels: Array.from({length: binCount}, (_, i) => {
+                    const min = (i * maxDuration / binCount).toFixed(2);
+                    const max = ((i+1) * maxDuration / binCount).toFixed(2);
+                    return `${min}s - ${max}s`;
+                }),
+                datasets: [{
+                    label: 'Request Count',
+                    data: Array(binCount).fill().map((_, i) => {
+                        const min = i * maxDuration / binCount;
+                        const max = (i+1) * maxDuration / binCount;
+                        return durations.filter(d => d >= min && d < max).length;
+                    }),
+                    backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: { 
+                            display: true, 
+                            text: 'Number of Requests' 
+                        }
+                    },
+                    x: {
+                        title: { 
+                            display: true, 
+                            text: 'Response Time Ranges' 
+                        }
+                    }
+                }
+            }
+        });
+        {% endif %}
+
+        // Error toggle function
+        function toggleError(id) {
+            const element = document.getElementById(id);
+            element.style.display = element.style.display === 'none' ? 'block' : 'none';
+        }
+    </script>
+</body>
+</html>

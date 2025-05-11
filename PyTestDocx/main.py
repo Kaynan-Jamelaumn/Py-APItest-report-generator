@@ -5,9 +5,8 @@ import argparse
 import os
 import socket
 import requests
-from PyTestDocx import BaseAPITest, CustomTestResult, CustomTestRunner, ReportGenerator
-from PyTestDocx.report import ReportGenerator
-
+from PyTestDocx import BaseAPITest, CustomTestResult, CustomTestRunner
+from PyTestDocx.report import DocxReportGenerator, HTMLReportGenerator
 class TestRunner:
     def __init__(self):
         self.args = None
@@ -123,7 +122,7 @@ class TestRunner:
 
     def generate_report(self):
         """Create and save the final test report."""
-        report = ReportGenerator(
+        report = DocxReportGenerator(
             test_errors=BaseAPITest.test_logger.test_errors,
             false_positives=self.false_positives,
             response_times=BaseAPITest.test_logger.response_times,
@@ -136,6 +135,27 @@ class TestRunner:
         )
         report.generate()
         report.save('test_report.docx')
+
+
+        report_data = {
+        'test_errors': BaseAPITest.test_logger.test_errors,
+        'false_positives': self.false_positives,
+        'response_times': BaseAPITest.test_logger.response_times,
+        'test_result': self.result,
+        'test_statuses': self.test_statuses,
+        'start_time': self.start_time,
+        'end_time': self.end_time,
+        'base_url': BaseAPITest.base_url,
+        'env_info': self.env_info,
+        'total_tests': self.result.testsRun if self.result else 0,
+        'passed': (self.result.testsRun - len(self.result.failures) 
+                 - len(self.result.errors) if self.result else 0),
+        'failed': len(self.result.failures) + len(self.result.errors) 
+                 if self.result else len(BaseAPITest.test_logger.test_errors)
+    }
+    
+        html_report = HTMLReportGenerator(report_data)
+        html_report.generate()
 
     def run(self):
         """Main execution flow coordinating all steps."""
