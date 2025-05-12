@@ -85,10 +85,10 @@ class TestRunner:
             is_false_positive = False
             
             # Get test duration from different possible sources  (if available)
-            duration = getattr(self.result, 'test_times', {}).get(test_id, 0.0)
+            if self.result:
+                duration = self.result.test_times.get(test_id, 0.0)
             if hasattr(test, '_test_run_time'):
                 duration = test._test_run_time
-
             # Check for failures/errors
             for failed_test, error_msg in self.result.failures + self.result.errors:
                 if test_id == failed_test.id():
@@ -148,10 +148,8 @@ class TestRunner:
         'base_url': BaseAPITest.base_url,
         'env_info': self.env_info,
         'total_tests': self.result.testsRun if self.result else 0,
-        'passed': (self.result.testsRun - len(self.result.failures) 
-                 - len(self.result.errors) if self.result else 0),
-        'failed': len(self.result.failures) + len(self.result.errors) 
-                 if self.result else len(BaseAPITest.test_logger.test_errors)
+        'passed': (self.result.testsRun - len(self.result.failures) - len(self.result.errors)) if self.result else 0,
+        'failed': len(self.result.failures) + len(self.result.errors) if self.result else 0,
     }
     
         html_report = HTMLReportGenerator(report_data)

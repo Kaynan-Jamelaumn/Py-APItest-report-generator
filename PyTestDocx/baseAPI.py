@@ -106,9 +106,21 @@ class BaseAPITest(unittest.TestCase):
         # Get test description from docstring if available
         test_description = test_method.__doc__.strip() if test_method.__doc__ else "No description available"
         response = getattr(self, 'response', None)  # Get response if it exists
+        payload = self._request_body
         request_body = getattr(self, '_request_body', None)  # Get request body if it exists
+        # Format payload information
+        payload_info = ""
+        if payload is not None:
+            try:
+                if isinstance(payload, (dict, list)):
+                    formatted_payload = json.dumps(payload, indent=2, ensure_ascii=False)
+                else:
+                    formatted_payload = str(payload)
+                payload_info = f"\nPayload Sent:\n{formatted_payload}\n"  # Updated label
+            except Exception as e:
+                payload_info = f"\nPayload: (Could not format: {str(e)})\n"
 
-        # Format response information
+        # Format response information (no truncation)
         response_info = ""
         if response is not None:
             try:
@@ -116,38 +128,23 @@ class BaseAPITest(unittest.TestCase):
                 response_info = json.dumps(response_content, indent=2)
             except ValueError:
                 response_info = response.text
+            response_info = (
+                f"\nResponse Status: {response.status_code}\n"
+                f"Response URL: {response.url}\n"
+                f"Response Content:\n{response_info}\n"  # Full content
+            )
 
-            # Truncate very long responses
-            if len(response_info) > 500:
-                response_info = response_info[:497] + "..."
-            response_info = (f"\nResponse Status: {response.status_code}\n"
-                            f"Response URL: {response.url}\n"
-                            f"Response Content:\n{response_info}\n")
-
-        # Format request body information
-        request_body_info = ""
-        if request_body is not None:
-            try:
-                if isinstance(request_body, (dict, list)):
-                    formatted_body = json.dumps(request_body, indent=2, ensure_ascii=False)
-                else:
-                    formatted_body = str(request_body)
-                request_body_info = f"\nRequest Body:\n{formatted_body}\n"
-            except Exception as e:
-                request_body_info = f"\nRequest Body: (Could not format: {str(e)})\n"
-
-        # Create comprehensive log entry
-        log_entry = (f"\nTest Description: {test_description}\n"
-                    f"Test: {self._testMethodName}\n"
-                    f"Error Type: {type(exception).__name__}\n"
-                    f"Error Message: {str(exception)}\n"
-                    f"{request_body_info}"
-                    f"{response_info}"
-                    "----------------------------------------\n")
-
+        # Create log entry
+        log_entry = (
+            f"\nTest Description: {test_description}\n"
+            f"Test: {self._testMethodName}\n"
+            f"Error Type: {type(exception).__name__}\n"
+            f"Error Message: {str(exception)}\n"
+            f"{payload_info}"
+            f"{response_info}"
+            "----------------------------------------\n"
+        )
         self.test_logger.log_test_error(log_entry)
-
-
 
     def assert_response(self, response: Response, expected_status: int, json_check: Optional[Dict[str, Any]]=None) -> None:
         """Universal response assertion with status code and optional JSON validation"""
@@ -195,6 +192,8 @@ class BaseAPITest(unittest.TestCase):
         """Utility method to make API requests with timing, error handling, automatic assertions, and retries.
         Delegates to RequestHandler for actual implementation.
         """
+
+        self._request_body = kwargs.get('json', kwargs.get('data', None))
         return self.request_handler.make_request(
             method=method,
             url=url,
