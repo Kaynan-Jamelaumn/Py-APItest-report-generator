@@ -457,7 +457,11 @@ class DocxReportGenerator:
             row_cells = table.rows[i].cells
             row_cells[0].text = label
             row_cells[1].text = f"{value:.2f} sec"
-            
+            # Ensure text is visible by setting font color to black
+            for cell in row_cells:
+                for paragraph in cell.paragraphs:
+                    for run in paragraph.runs:
+                        run.font.color.rgb = RGBColor(0x00, 0x00, 0x00)  # Black
 
     def _add_environment_info(self):
         """Add table showing test environment details"""

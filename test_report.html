@@ -47,8 +47,8 @@
                             <p class="card-text">
                                 <strong>Project:</strong> N/A<br>
                                 <strong>Environment:</strong> Staging<br>
-                                <strong>Base URL:</strong> https://test.com<br>
-                                <strong>Generated:</strong> May 11, 2025 18:45:27
+                                <strong>Base URL:</strong> https://qas-api.simtro.com.br/api<br>
+                                <strong>Generated:</strong> May 12, 2025 09:11:30
                             </p>
                         </div>
                     </div>
@@ -70,7 +70,7 @@
                 <div class="card text-white bg-success">
                     <div class="card-body">
                         <h5 class="card-title">Passed</h5>
-                        <p class="card-text display-4">0</p>
+                        <p class="card-text display-4">4</p>
                     </div>
                 </div>
             </div>
@@ -78,7 +78,7 @@
                 <div class="card text-white bg-danger">
                     <div class="card-body">
                         <h5 class="card-title">Failed</h5>
-                        <p class="card-text display-4">6</p>
+                        <p class="card-text display-4">2</p>
                     </div>
                 </div>
             </div>
@@ -86,7 +86,7 @@
                 <div class="card text-white bg-warning">
                     <div class="card-body">
                         <h5 class="card-title">Pass Rate</h5>
-                        <p class="card-text display-4">0.0%</p>
+                        <p class="card-text display-4">66.7%</p>
                     </div>
                 </div>
             </div>
@@ -102,22 +102,39 @@
                             <table class="info-table">
                                 <tr>
                                     <td width="40%"><strong>Start Time</strong></td>
-                                    <td>2025-05-11 18:42:56</td>
+                                    <td>2025-05-12 09:11:23</td>
                                 </tr>
                                 <tr>
                                     <td><strong>End Time</strong></td>
-                                    <td>2025-05-11 18:45:27</td>
+                                    <td>2025-05-12 09:11:28</td>
                                 </tr>
                                 <tr>
                                     <td><strong>Total Duration</strong></td>
-                                    <td>0h 2m 30s<br>
-                                        <small>150.65 seconds</small>
+                                    <td>0h 0m 5s<br>
+                                        <small>5.40 seconds</small>
                                     </td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><strong>Fastest Response</strong></td>
+                                    <td class="stat-number">0.210s</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Slowest Response</strong></td>
+                                    <td class="stat-number">0.236s</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Median Response</strong></td>
+                                    <td class="stat-number">0.229s</td>
                                 </tr>
                                 
                             </table>
                         </div>
                         <div class="col-md-6">
+                            
+                            <div class="timeline-chart">
+                                <canvas id="executionTimelineChart"></canvas>
+                            </div>
                             
                         </div>
                     </div>
@@ -126,6 +143,41 @@
         </section>
 
         <!-- Detailed Response Statistics -->
+        
+        <section class="mb-5">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Detailed Response Analysis</h5>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <table class="info-table">
+                                <tr>
+                                    <td><strong>Average Response</strong></td>
+                                    <td class="stat-number">0.226s</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Total Requests</strong></td>
+                                    <td class="stat-number">4</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Percentiles</strong></td>
+                                    <td>
+                                        <span class="percentile-badge">P90: 0.238s</span><br>
+                                        <span class="percentile-badge">P95: 0.239s</span><br>
+                                        <span class="percentile-badge">P99: 0.240s</span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="response-time-chart">
+                                <canvas id="responseHistogram"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
         
 
         <!-- Environment Information -->
@@ -136,7 +188,7 @@
                     <table class="info-table">
                         <tr>
                             <td width="30%"><strong>Python Version</strong></td>
-                            <td>3.13.1</td>
+                            <td>3.13.2</td>
                         </tr>
                         <tr>
                             <td><strong>Platform</strong></td>
@@ -148,15 +200,15 @@
                         </tr>
                         <tr>
                             <td><strong>Hostname</strong></td>
-                            <td>kaynan</td>
+                            <td>PDINOTE-03</td>
                         </tr>
                         <tr>
                             <td><strong>CPU Cores</strong></td>
-                            <td>16</td>
+                            <td>8</td>
                         </tr>
                         <tr>
                             <td><strong>Base API URL</strong></td>
-                            <td>https://test.com</td>
+                            <td>https://qas-api.simtro.com.br/api</td>
                         </tr>
                     </table>
                 </div>
@@ -184,11 +236,11 @@
                                     <td>test_invalid_login</td>
                                     <td>test_auth.TestAuthentication.test_invalid_login</td>
                                     <td>
-                                        <span class="status-badge failed">
-                                            Failed
+                                        <span class="status-badge passed">
+                                            Passed
                                         </span>
                                     </td>
-                                    <td>84.192s</td>
+                                    <td>1.226s</td>
                                 </tr>
                                 
                                 <tr>
@@ -199,7 +251,7 @@
                                             Failed
                                         </span>
                                     </td>
-                                    <td>66.453s</td>
+                                    <td>0.724s</td>
                                 </tr>
                                 
                                 <tr>
@@ -210,40 +262,40 @@
                                             Failed
                                         </span>
                                     </td>
-                                    <td>0.001s</td>
+                                    <td>1.118s</td>
                                 </tr>
                                 
                                 <tr>
                                     <td>test_successful_login</td>
                                     <td>test_auth.TestAuthentication.test_successful_login</td>
                                     <td>
-                                        <span class="status-badge failed">
-                                            Failed
+                                        <span class="status-badge passed">
+                                            Passed
                                         </span>
                                     </td>
-                                    <td>0.001s</td>
+                                    <td>0.531s</td>
                                 </tr>
                                 
                                 <tr>
                                     <td>test_retrieve_transaction</td>
                                     <td>test_billing.TestBillingOperations.test_retrieve_transaction</td>
                                     <td>
-                                        <span class="status-badge failed">
-                                            Failed
+                                        <span class="status-badge passed">
+                                            Passed
                                         </span>
                                     </td>
-                                    <td>0.001s</td>
+                                    <td>1.059s</td>
                                 </tr>
                                 
                                 <tr>
                                     <td>test_update_transaction</td>
                                     <td>test_billing.TestBillingOperations.test_update_transaction</td>
                                     <td>
-                                        <span class="status-badge failed">
-                                            Failed
+                                        <span class="status-badge passed">
+                                            Passed
                                         </span>
                                     </td>
-                                    <td>0.001s</td>
+                                    <td>0.734s</td>
                                 </tr>
                                 
                             </tbody>
@@ -260,7 +312,7 @@
         <section class="mb-5">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Error Details (6)</h5>
+                    <h5 class="card-title">Error Details (2)</h5>
                     <div id="errorAccordion">
                         
                         <div class="error-details card mb-2">
@@ -270,15 +322,24 @@
                             </div>
                             <div id="error1" class="error-content card-body">
                                 <pre>
-Test Description: Invalid credentials should be rejected
-Test: test_invalid_login
-Error Type: RequestException
-Error Message: Both /login and /authenticate endpoints failed
+Test Description: Invalid credentials should return specific error code
+Test: test_invalid_login_with_specific_code
+Error Type: AssertionError
+Error Message: 404 != 460
 
 Request Body:
 {
   "login": "invalid_user",
   "password": "wrong_password"
+}
+
+Response Status: 404
+Response URL: https://qas-api.simtro.com.br/api/authenticate
+Response Content:
+{
+  "errors": [
+    "Route Not Found"
+  ]
 }
 ----------------------------------------
 </pre>
@@ -292,80 +353,43 @@ Request Body:
                             </div>
                             <div id="error2" class="error-content card-body">
                                 <pre>
-Test Description: Invalid credentials should return specific error code
-Test: test_invalid_login_with_specific_code
-Error Type: RequestException
-Error Message: Both /login and /authenticate endpoints failed
+Test Description: Test complete login/logout cycle
+Test: test_logout_flow
+Error Type: AssertionError
+Error Message: Unexpected status 401. Response: {"message":"N\u00e3o autorizado. Voc\u00ea precisa se autenticar no sistema.","status":401}
 
 Request Body:
 {
-  "login": "invalid_user",
-  "password": "wrong_password"
+  "login": "01300086998",
+  "password": "@vante0niX"
 }
-----------------------------------------
-</pre>
-                            </div>
-                        </div>
-                        
-                        <div class="error-details card mb-2">
-                            <div class="card-header" 
-                                 onclick="toggleError('error3')">
-                                Error #3 - ...
-                            </div>
-                            <div id="error3" class="error-content card-body">
-                                <pre>
-Test Description: Test complete login/logout cycle
-Test: test_logout_flow
-Error Type: ValueError
-Error Message: Missing credentials in .env file
-----------------------------------------
-</pre>
-                            </div>
-                        </div>
-                        
-                        <div class="error-details card mb-2">
-                            <div class="card-header" 
-                                 onclick="toggleError('error4')">
-                                Error #4 - ...
-                            </div>
-                            <div id="error4" class="error-content card-body">
-                                <pre>
-Test Description: Valid credentials should return access token
-Test: test_successful_login
-Error Type: ValueError
-Error Message: Missing credentials in .env file
-----------------------------------------
-</pre>
-                            </div>
-                        </div>
-                        
-                        <div class="error-details card mb-2">
-                            <div class="card-header" 
-                                 onclick="toggleError('error5')">
-                                Error #5 - ...
-                            </div>
-                            <div id="error5" class="error-content card-body">
-                                <pre>
-Test Description: Should fetch existing transaction data
-Test: test_retrieve_transaction
-Error Type: ValueError
-Error Message: Missing credentials in .env file
-----------------------------------------
-</pre>
-                            </div>
-                        </div>
-                        
-                        <div class="error-details card mb-2">
-                            <div class="card-header" 
-                                 onclick="toggleError('error6')">
-                                Error #6 - ...
-                            </div>
-                            <div id="error6" class="error-content card-body">
-                                <pre>
-Test Description: Should successfully update a billing transaction
-Test: test_update_transaction
-Error Type: ValueError
-Error Message: Missing credentials in .env file
+
+Response Status: 200
+Response URL: https://qas-api.simtro.com.br/api/login
+Response Content:
+{
+  "user": {
+    "id": 34,
+    "name": "Administrador",
+    "email": "simtro.digital@onix.seg.br",
+    "active": true,
+    "cpf": "01300086998",
+    "type": 1,
+    "partnerId": 1,
+    "isCoordinator": false,
+    "isAdministrator": true,
+    "businessHours": true,
+    "externalAccess": false,
+    "phone": "(48) 9917-07154",
+    "address": {
+      "state": {
+        "id": 42,
+        "name": "Santa Catarina",
+        "acronym": "SC"
+      },
+      "city": {
+        "id": 4207304,
+        "name...
 ----------------------------------------
 </pre>
                             </div>
@@ -379,6 +403,86 @@ Error Message: Missing credentials in .env file
 
     <script>
         // Execution Timeline Chart
+        
+        const timelineCtx = document.getElementById('executionTimelineChart').getContext('2d');
+        new Chart(timelineCtx, {
+            type: 'line',
+            data: {
+                datasets: [{
+                    label: 'Response Times',
+                    data: [0.2315688133239746, 0.22625446319580078, 0.2097947597503662, 0.23593544960021973],
+                    borderColor: '#4CAF50',
+                    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                    tension: 0.2,
+                    pointRadius: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: { 
+                            display: true, 
+                            text: 'Response Time (seconds)' 
+                        }
+                    },
+                    x: {
+                        type: 'linear',
+                        title: { 
+                            display: true, 
+                            text: 'Request Sequence' 
+                        }
+                    }
+                }
+            }
+        });
+
+        // Response Time Histogram
+        const histCtx = document.getElementById('responseHistogram').getContext('2d');
+        const durations = [0.2315688133239746, 0.22625446319580078, 0.2097947597503662, 0.23593544960021973];
+        const maxDuration = 0.23593544960021973;
+        const binCount = 10;
+        
+        new Chart(histCtx, {
+            type: 'bar',
+            data: {
+                labels: Array.from({length: binCount}, (_, i) => {
+                    const min = (i * maxDuration / binCount).toFixed(2);
+                    const max = ((i+1) * maxDuration / binCount).toFixed(2);
+                    return `${min}s - ${max}s`;
+                }),
+                datasets: [{
+                    label: 'Request Count',
+                    data: Array(binCount).fill().map((_, i) => {
+                        const min = i * maxDuration / binCount;
+                        const max = (i+1) * maxDuration / binCount;
+                        return durations.filter(d => d >= min && d < max).length;
+                    }),
+                    backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: { 
+                            display: true, 
+                            text: 'Number of Requests' 
+                        }
+                    },
+                    x: {
+                        title: { 
+                            display: true, 
+                            text: 'Response Time Ranges' 
+                        }
+                    }
+                }
+            }
+        });
         
 
         // Error toggle function
