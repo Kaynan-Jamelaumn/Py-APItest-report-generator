@@ -323,22 +323,31 @@ class DocxReportGenerator:
         """Display failure statistics in a table"""
         self.doc.add_paragraph("Failure Statistics:", style="Heading 3")
         
+        # Create a table with one row for each error type plus a header
         table = self.doc.add_table(rows=len(error_types)+1, cols=2)
         table.style = "Light Grid Accent 1"
         
-        # Header
-        table.cell(0, 0).text = "Error Type"
-        table.cell(0, 1).text = "Count"
+        # Set header row
+        header_cells = table.rows[0].cells
+        header_cells[0].text = "Error Type"
+        header_cells[1].text = "Count"
         
-        # Data rows
-        for i, (error_type, count) in enumerate(error_types.items(), 1):
-            table.cell(i, 0).text = error_type
-            table.cell(i, 1).text = str(count)
-            
-            # Highlight false positives
-            if "False Positives" in error_type:
-                table.cell(i, 1).font.color.rgb = RGBColor(255, 165, 0)  # Orange
+        for cell in header_cells:
+            for paragraph in cell.paragraphs:
+                for run in paragraph.runs:
+                    run.bold = True
 
+        # Populate rows with error data
+        for i, (error_type, count) in enumerate(error_types.items(), start=1):
+            table.cell(i, 0).text = error_type
+            count_cell = table.cell(i, 1)
+            count_cell.text = str(count)
+            
+            # Style the count column (e.g., change text color)
+            paragraph = count_cell.paragraphs[0]
+            run = paragraph.add_run(count_cell.text)
+            run.font.color.rgb = RGBColor(255, 165, 0)  # Orange
+            paragraph.runs[0].text = ""  # Remove duplicated text in the original cell text
 
 
     def _add_response_time_chart(self):
