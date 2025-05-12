@@ -30,7 +30,7 @@ class HTMLReportGenerator:
         template_path = os.path.join(current_dir, 'templates')
 
         # Initialize Jinja2 environment with the given template path
-        self.template_env = Environment(loader=FileSystemLoader(template_path))
+        self.template_env = Environment(loader=FileSystemLoader(template_path), autoescape=True  )
         self.template_env.filters['extract_test_name'] = self._extract_test_name
         self.template_env.filters['extract_error_type'] = self._extract_error_type
         # Define output report file name
