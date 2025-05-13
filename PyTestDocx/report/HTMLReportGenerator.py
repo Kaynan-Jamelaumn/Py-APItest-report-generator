@@ -168,15 +168,16 @@ class HTMLReportGenerator:
 
         # Process response times for charts
         response_times = []
-        for rt in self.report_data.get('response_times', []):
+        for index, rt in enumerate(self.report_data.get('response_times', [])):
             ts = rt.get('timestamp')
-            dur = rt.get('duration')
+            dur = rt.get('duration')  
+            name = self.report_data['test_statuses'][index].get('name', 'Unknown Test')
             if ts is None or dur is None:
                 continue
             timestamp_ms = float(ts) * 1000 if ts < 1e12 else float(ts)
             duration_ms = float(dur) * 1000
             formatted = time.strftime('%m/%d/%Y %H:%M', time.localtime(timestamp_ms / 1000))
-            response_times.append({'timestamp': timestamp_ms, 'formatted_time': formatted, 'duration': duration_ms})
+            response_times.append({'timestamp': timestamp_ms, 'formatted_time': formatted, 'duration': duration_ms, 'test_name': name })
         
         response_times.sort(key=lambda x: x['timestamp'])
 

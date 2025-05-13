@@ -376,41 +376,49 @@
         {% if charts.response_times %}
          // Response Time Chart
         const responseData = {{ charts.response_times | tojson }};
-        const timeLabels = responseData.map(rt => rt.timestamp);
-        const durationData = responseData.map(rt => rt.duration);
 
         new Chart(document.getElementById('responseChart'), {
-            type: 'line',
-            data: {
-                datasets: [{
-                    label: 'Response Time (ms)',
-                    data: responseData.map(rt => ({ x: rt.timestamp, y: rt.duration })),
-                    borderColor: '#3498db',
-                    tension: 0.2,
-                    fill: false
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    title: { display: true, text: 'Response Times Over Time' }
-                },
-                scales: {
-                    x: {
-                        type: 'time',
-                        time: {
-                            unit: 'minute',
-                            tooltipFormat: 'MM/dd/yyyy HH:mm'
-                        },
-                        title: { display: true, text: 'Time' }
-                    },
-                    y: {
-                        title: { display: true, text: 'Duration (ms)' },
-                        beginAtZero: true
-                    }
+        type: 'line',
+        data: {
+            datasets: [{
+            // Each point is now { x, y, test_name }
+            data: responseData.map(rt => ({ x: rt.timestamp, y: rt.duration, test_name: rt.test_name })),
+            borderColor: '#3498db',
+            tension: 0.2,
+            fill: false,
+            pointRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+            title: { display: true, text: 'Response Times Over Time' },
+            tooltip: {
+                callbacks: {
+                label: function(context) {
+                    const tn = context.raw.test_name || 'Unknown';
+                    const ms = context.parsed.y.toFixed(2);
+                    return tn + ': ' + ms + ' ms';
+                }
                 }
             }
+            },
+            scales: {
+            x: {
+                type: 'time',
+                time: {
+                unit: 'minute',
+                tooltipFormat: 'MM/dd/yyyy HH:mm'
+                },
+                title: { display: true, text: 'Time' }
+            },
+            y: {
+                title: { display: true, text: 'Duration (ms)' },
+                beginAtZero: true
+            }
+            }
+        }
         });
         {% endif %}
     </script>
