@@ -4,10 +4,7 @@ import time
 
 class TestAuthentication(BaseAPITest):
     """Tests for login/logout functionality"""
-    @classmethod
-    def setUpClass(cls):
-        """Class setup that calls parent's setup first"""
-        super().setUpClass()  # This ensures BaseAPITest's setup runs first
+    
     def test_successful_login(self):
         """Valid credentials should return access token"""
         response = self.login()

@@ -204,45 +204,45 @@
             </tbody>
         </table>
     </div>
-<!-- Errors Section -->
-{% if errors %}
-<div class="error-section">
-    <h3> Errors ({{ errors|length }})</h3>
-    {% for error in errors %}
-    <details class="error-details">
-        <summary class="error-summary">
-            <span class="error-badge">{{ loop.index }}</span>
-            <span class="error-title">
-                {{ error | extract_test_name }} - 
-                <span class="error-type">{{ error | extract_error_type }}</span>
-            </span>
-        </summary>
-        <!-- Rest of the error content remains the same -->
-            <div class="error-content">
-                {% for line in error.split('\n') %}
-                    {% if 'Response Content:' not in line %}  
-                        <div class="error-line 
-                            {% if 'Test:' in line %}error-test
-                            {% elif 'Type:' in line %}error-type
-                            {% elif 'Message:' in line %}error-message
-                            {% elif 'Description:' in line %}error-description
-                            {% elif 'URL:' in line %}error-url
-                            {% elif 'Status Code:' in line %}error-status
-                            {% endif %}">
-                            {% if ':' in line %}
-                                <span class="error-label">{{ line.split(':')[0] }}:</span>
-                                <span class="error-value">{{ line.split(':', 1)[1]|trim }}</span>
-                            {% else %}
-                                {{ line }}
-                            {% endif %}
-                        </div>
-                    {% endif %}  <!-- Close the condition -->
-                {% endfor %}
+    <!-- Errors Section -->
+    {% if errors %}
+    <div class="error-section">
+        <h3> Errors ({{ errors|length }})</h3>
+        {% for error in errors %}
+        <details class="error-details">
+            <summary class="error-summary">
+                <span class="error-badge">{{ loop.index }}</span>
+                <span class="error-title">
+                    {{ error | extract_test_name }} - 
+                    <span class="error-type">{{ error | extract_error_type }}</span>
+                </span>
+            </summary>
+            <!-- Rest of the error content remains the same -->
+                <div class="error-content">
+                    {% for line in error.split('\n') %}
+                        {% if 'Response Content:' not in line %}  
+                            <div class="error-line 
+                                {% if 'Test:' in line %}error-test
+                                {% elif 'Type:' in line %}error-type
+                                {% elif 'Message:' in line %}error-message
+                                {% elif 'Description:' in line %}error-description
+                                {% elif 'URL:' in line %}error-url
+                                {% elif 'Status Code:' in line %}error-status
+                                {% endif %}">
+                                {% if ':' in line %}
+                                    <span class="error-label">{{ line.split(':')[0] }}:</span>
+                                    <span class="error-value">{{ line.split(':', 1)[1]|trim }}</span>
+                                {% else %}
+                                    {{ line }}
+                                {% endif %}
+                            </div>
+                        {% endif %}  <!-- Close the condition -->
+                    {% endfor %}
+                </div>
             </div>
-        </div>
-    </details>
-    {% endfor %}
-</div>
+        </details>
+        {% endfor %}
+    </div>
 
     <style>
         .error-type {
@@ -323,6 +323,8 @@
         .error-status { background-color: #f3e8ff; }
     </style>
     {% endif %}
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+
     <script>
         // Summary Pie Chart
         new Chart(document.getElementById('summaryChart'), {
@@ -372,16 +374,17 @@
 
         // Response Time Chart
         {% if charts.response_times %}
-        const timeLabels = {{ charts.response_times | map(attribute='timestamp') | list | tojson }};
-        const durationData = {{ charts.response_times | map(attribute='duration') | list | tojson }};
-        
+         // Response Time Chart
+        const responseData = {{ charts.response_times | tojson }};
+        const timeLabels = responseData.map(rt => rt.timestamp);
+        const durationData = responseData.map(rt => rt.duration);
+
         new Chart(document.getElementById('responseChart'), {
             type: 'line',
             data: {
-                labels: timeLabels,
                 datasets: [{
                     label: 'Response Time (ms)',
-                    data: durationData,
+                    data: responseData.map(rt => ({ x: rt.timestamp, y: rt.duration })),
                     borderColor: '#3498db',
                     tension: 0.2,
                     fill: false
@@ -397,8 +400,8 @@
                     x: {
                         type: 'time',
                         time: {
-                            parser: 'MM/DD/YYYY HH:mm',
-                            tooltipFormat: 'll HH:mm'
+                            unit: 'minute',
+                            tooltipFormat: 'MM/dd/yyyy HH:mm'
                         },
                         title: { display: true, text: 'Time' }
                     },

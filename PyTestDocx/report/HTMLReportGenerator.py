@@ -1,22 +1,23 @@
-# [file name]: HTMLReportGenerator.py
-
 import os
 import json
 import time
 import logging
-import statistics
-from jinja2 import Environment, FileSystemLoader
+import statistics  # For calculating statistical metrics
+from jinja2 import Environment, FileSystemLoader # For templating HTML reports
 from collections import defaultdict
 import re 
+
 # Set up logger for reporting errors or debug information
 logger = logging.getLogger(__name__)
 
 class HTMLReportGenerator:
-    """Generates an HTML test report with charts and test summaries using Jinja2 templates."""
+    """
+    Generates an HTML test report with charts and test summaries using Jinja2 templates.
+    """
 
     def __init__(self, report_data):
         """
-        Constructor: Initialize the report generator with input test data and load the template environment.
+        Initialize the report generator with input test data and load the template environment.
         
         Args:
             report_data (dict): A structured dictionary containing test execution results.
@@ -30,41 +31,63 @@ class HTMLReportGenerator:
         template_path = os.path.join(current_dir, 'templates')
 
         # Initialize Jinja2 environment with the given template path
-        self.template_env = Environment(loader=FileSystemLoader(template_path), autoescape=True  )
+        self.template_env = Environment(loader=FileSystemLoader(template_path), autoescape=True)
         self.template_env.filters['extract_test_name'] = self._extract_test_name
         self.template_env.filters['extract_error_type'] = self._extract_error_type
+        
         # Define output report file name
         self.output_file = 'test_report.html'
 
     @staticmethod
     def _extract_test_name(error_text):
-        """Extract test name from error text."""
+        """
+        Extract test name from error text using a regex pattern.
+
+        Args:
+            error_text (str): The error message text.
+        
+        Returns:
+            str: Extracted test name or "Error" if not found.
+        """
         match = re.search(r'Test:\s*(.*)', error_text)
-        return match.group(1) if match else f"Error"
+        return match.group(1) if match else "Error"
 
     @staticmethod
     def _extract_error_type(error_text):
-        """Extract error type from error text."""
+        """
+        Extract error type from error text using a regex pattern.
+
+        Args:
+            error_text (str): The error message text.
+        
+        Returns:
+            str: Extracted error type or "Unknown Error" if not found.
+        """
         match = re.search(r'Type:\s*(.*)', error_text)
         return match.group(1) if match else "Unknown Error"
 
     def _redact_passwords(self, error_text):
-        """Replace password values in JSON request bodies with REDACTED."""
-        # Match JSON format password fields
-        password_pattern = re.compile(
-            r'("password"\s*:\s*)(["\'])(.*?)(["\'])', 
-            flags=re.IGNORECASE
-        )
+        """
+        Replace password values in JSON request bodies with "REDACTED".
+
+        Args:
+            error_text (str): The error message text.
+        
+        Returns:
+            str: Error message with passwords redacted.
+        """
+        password_pattern = re.compile(r'("password"\s*:\s*)(["\'])(.*?)(["\'])', flags=re.IGNORECASE)
         return password_pattern.sub(r'\1\2REDACTED\4', str(error_text))
 
-
     def generate(self):
-        """Render the report template with collected data and write the final HTML report."""
+        """
+        Render the report template with collected data and write the final HTML report.
+        """
         try:
-            # Add password redaction to errors before passing to context
-            processed_errors = [self._redact_passwords(error) 
-                              for error in self.report_data['test_errors']]
-            # Prepare all contextual data needed by the template
+            # Redact passwords in error messages
+            processed_errors = [self._redact_passwords(error) for error in self.report_data['test_errors']]
+            
+            # Prepare contextual data for the HTML template
             context = {
                 'meta': self._prepare_metadata(),
                 'summary': self._prepare_summary_data(),
@@ -81,26 +104,36 @@ class HTMLReportGenerator:
             template = self.template_env.get_template('base.html')
             html_content = template.render(context)
 
-            # Output rendered HTML to a file
+            # Save rendered HTML content to the output file
             with open(self.output_file, 'w') as f:
                 f.write(html_content)
 
         except Exception as e:
-            # Log and re-raise exceptions for traceability
+            # Log and re-raise any exceptions encountered during generation
             logger.error(f"Failed to generate HTML report: {str(e)}")
             raise
 
     def _prepare_metadata(self):
-        """Gather general metadata for display in the report header."""
+        """
+        Gather general metadata for display in the report header.
+
+        Returns:
+            dict: Metadata including project name, environment, and generation time.
+        """
         return {
-            'project': os.getenv('PROJECT_NAME', 'N/A'),  # Pull from env variable if available
+            'project': os.getenv('PROJECT_NAME', 'N/A'),
             'environment': os.getenv('ENVIRONMENT', 'Staging'),
-            'generated': time.strftime('%B %d, %Y %H:%M:%S'),  # Human-readable timestamp
+            'generated': time.strftime('%B %d, %Y %H:%M:%S'),
             'base_url': self.report_data['base_url']
         }
 
     def _prepare_summary_data(self):
-        """Calculate summary metrics including pass rate and false positive count."""
+        """
+        Calculate summary metrics including pass rate and false positive count.
+
+        Returns:
+            dict: Summary data containing total, passed, failed, and pass rate.
+        """
         total = self.report_data['total_tests']
         passed = self.report_data['passed']
         failed = self.report_data['failed']
@@ -115,14 +148,15 @@ class HTMLReportGenerator:
 
     def _prepare_chart_data(self):
         """
-        Aggregate data required for chart visualizations:
-        - Error type frequency
-        - Time-series of response times
+        Aggregate data required for chart visualizations.
+
+        Returns:
+            dict: Chart data including error types and response times.
         """
         error_types = defaultdict(int)
-    
+        
+        # Categorize errors by type or status code
         for error in self.report_data['test_errors']:
-            # Extract HTTP status code from error message using regex
             match = re.search(r'\b\d{3}\b', str(error))
             if match:
                 status_code = match.group()
@@ -132,102 +166,80 @@ class HTMLReportGenerator:
             else:
                 error_types["Other Errors"] += 1
 
-        # Process response times (moved outside of the error loop)
+        # Process response times for charts
         response_times = []
-        if 'response_times' in self.report_data:
-            response_times = sorted(
-                [rt for rt in self.report_data['response_times'] if rt.get('timestamp')],
-                key=lambda x: x['timestamp']
-            )
+        for rt in self.report_data.get('response_times', []):
+            ts = rt.get('timestamp')
+            dur = rt.get('duration')
+            if ts is None or dur is None:
+                continue
+            timestamp_ms = float(ts) * 1000 if ts < 1e12 else float(ts)
+            duration_ms = float(dur) * 1000
+            formatted = time.strftime('%m/%d/%Y %H:%M', time.localtime(timestamp_ms / 1000))
+            response_times.append({'timestamp': timestamp_ms, 'formatted_time': formatted, 'duration': duration_ms})
         
+        response_times.sort(key=lambda x: x['timestamp'])
+
         return {
             'summary_labels': ['Passed', 'Failed'],
-            'summary_data': [self.report_data['passed'], self.report_data['failed']],
+            'summary_data': [self.report_data.get('passed', 0), self.report_data.get('failed', 0)],
             'error_labels': list(error_types.keys()),
             'error_data': list(error_types.values()),
-            'response_times': response_times
+            'response_times': response_times,
         }
 
     def _prepare_execution_data(self):
-        """Format start/end timestamps and compute total execution time."""
-        duration = self.report_data['end_time'] - self.report_data['start_time']
+        """
+        Format start and end timestamps and compute total execution time.
 
-        # Convert seconds to hours, minutes, seconds format
+        Returns:
+            dict: Execution metadata including start time, end time, and duration.
+        """
+        duration = self.report_data['end_time'] - self.report_data['start_time']
         hours, remainder = divmod(duration, 3600)
         minutes, seconds = divmod(remainder, 60)
         human_duration = f"{int(hours)}h {int(minutes)}m {int(seconds)}s"
 
         return {
-            'start': time.strftime('%Y-%m-%d %H:%M:%S', 
-                                   time.localtime(self.report_data['start_time'])),
-            'end': time.strftime('%Y-%m-%d %H:%M:%S', 
-                                 time.localtime(self.report_data['end_time'])),
+            'start': time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(self.report_data['start_time'])),
+            'end': time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(self.report_data['end_time'])),
             'duration': duration,
             'human_duration': human_duration
         }
 
-
     def _prepare_response_stats(self):
         """
-        Calculate statistical metrics for response durations with robust error handling.
-        Returns a dictionary with average, median, min, max, count, and percentiles.
-        Returns None if no valid response time data is available.
+        Calculate statistical metrics for response durations.
+
+        Returns:
+            dict: Response time statistics including averages, percentiles, and counts.
         """
-        if not self.report_data.get('response_times'):
+        durations = [float(rt['duration']) for rt in self.report_data.get('response_times', []) if rt.get('duration') is not None]
+        if not durations:
             return None
 
-        try:
-            # Extract valid durations (ignore None or invalid values)
-            durations = []
-            for rt in self.report_data['response_times']:
-                try:
-                    duration = float(rt['duration'])
-                    if duration >= 0:  # Only accept non-negative durations
-                        durations.append(duration)
-                except (ValueError, KeyError, TypeError):
-                    continue
-
-            if not durations:
-                return None
-
-            # Basic statistics
-            stats = {
-                'average': statistics.mean(durations),
-                'median': statistics.median(durations),
-                'min': min(durations),
-                'max': max(durations),
-                'count': len(durations),
-                'percentiles': {
-                    'p90': 0,
-                    'p95': 0,
-                    'p99': 0
-                }
+        stats = {
+            'average': statistics.mean(durations),
+            'median': statistics.median(durations),
+            'min': min(durations),
+            'max': max(durations),
+            'count': len(durations),
+            'percentiles': {
+                'p90': statistics.quantiles(durations, n=100)[89] if len(durations) >= 10 else None,
+                'p95': statistics.quantiles(durations, n=100)[94] if len(durations) >= 10 else None,
+                'p99': statistics.quantiles(durations, n=100)[98] if len(durations) >= 10 else None
             }
-
-            # Calculate percentiles only if we have enough data points
-            if len(durations) >= 10:
-                try:
-                    quantiles = statistics.quantiles(durations, n=100)
-                    stats['percentiles']['p90'] = quantiles[89]  # 90th percentile
-                    stats['percentiles']['p95'] = quantiles[94]  # 95th percentile
-                    stats['percentiles']['p99'] = quantiles[98]  # 99th percentile
-                except Exception:
-                    # Fallback to simpler calculation if quantiles fails
-                    sorted_durations = sorted(durations)
-                    n = len(sorted_durations)
-                    stats['percentiles']['p90'] = sorted_durations[int(0.9 * n) - 1]
-                    stats['percentiles']['p95'] = sorted_durations[int(0.95 * n) - 1]
-                    stats['percentiles']['p99'] = sorted_durations[int(0.99 * n) - 1]
-
-            return stats
-
-        except Exception as e:
-            logger.error(f"Error calculating response statistics: {str(e)}")
-            return None
+        }
 
         return stats
+
     def _prepare_environment_data(self):
-        """Return system environment data such as Python version, platform, and hostname."""
+        """
+        Gather system environment information for display in the report.
+
+        Returns:
+            dict: Environment metadata including Python version, platform, and hostname.
+        """
         return {
             'python_version': self.report_data['env_info']['python_version'],
             'platform': self.report_data['env_info']['platform'],

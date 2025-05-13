@@ -207,7 +207,8 @@ class RequestManager:
         method: str,
         duration: float,
         status_code: int,
-        attempt: int
+        attempt: int,
+        
     ) -> None:
         """Track metrics for successful responses."""
         self.test_logger.response_times.append({
@@ -215,7 +216,8 @@ class RequestManager:
             'method': method,
             'duration': duration,
             'status_code': status_code,
-            'attempt': attempt
+            'attempt': attempt,
+            'timestamp': time.time()
         })
 
     def _track_error_metrics(
@@ -232,7 +234,8 @@ class RequestManager:
             'method': method,
             'duration': duration,
             'error': str(error),
-            'attempt': attempt
+            'attempt': attempt,
+            'timestamp': time.time() 
         })
 
     def _should_retry_response(
