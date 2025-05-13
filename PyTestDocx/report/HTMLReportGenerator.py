@@ -148,13 +148,12 @@ class HTMLReportGenerator:
 
     def _prepare_chart_data(self):
         """
-        Aggregate data required for chart visualizations.
+        Aggregate data required for chart visualizations, using test case durations to plot consistent metrics.
 
         Returns:
-            dict: Chart data including error types and response times.
+            dict: Chart data including error types and response times based on test durations.
         """
         error_types = defaultdict(int)
-        
         # Categorize errors by type or status code
         for error in self.report_data['test_errors']:
             match = re.search(r'\b\d{3}\b', str(error))
@@ -166,19 +165,25 @@ class HTMLReportGenerator:
             else:
                 error_types["Other Errors"] += 1
 
-        # Process response times for charts
+        # Build the “response_times” array from test_statuses durations
         response_times = []
-        for index, rt in enumerate(self.report_data.get('response_times', [])):
-            ts = rt.get('timestamp')
-            dur = rt.get('duration')  
-            name = self.report_data['test_statuses'][index].get('name', 'Unknown Test')
-            if ts is None or dur is None:
-                continue
+        for idx, test in enumerate(self.report_data.get('test_statuses', [])):
+            raw_duration_s = test.get('duration', 0)
+            # Convert to milliseconds for the chart
+            duration_ms = float(raw_duration_s) * 1000
+
+            #spread them evenly from the report start time:
+            ts = self.report_data['start_time'] + idx
             timestamp_ms = float(ts) * 1000 if ts < 1e12 else float(ts)
-            duration_ms = float(dur) * 1000
             formatted = time.strftime('%m/%d/%Y %H:%M', time.localtime(timestamp_ms / 1000))
-            response_times.append({'timestamp': timestamp_ms, 'formatted_time': formatted, 'duration': duration_ms, 'test_name': name })
-        
+
+            response_times.append({
+                'timestamp': timestamp_ms,
+                'formatted_time': formatted,
+                'duration': duration_ms,
+                'test_name': test.get('name', test.get('id', 'Unknown Test'))
+            })
+
         response_times.sort(key=lambda x: x['timestamp'])
 
         return {
@@ -249,3 +254,56 @@ class HTMLReportGenerator:
             'cpu_cores': self.report_data['env_info']['cpu_cores'],
             'base_url': self.report_data['base_url']
         }
+
+
+
+
+
+
+
+
+
+
+
+    # def _prepare_chart_data(self):
+    #     """
+    #     Aggregate data required for chart visualizations.
+
+    #     Returns:
+    #         dict: Chart data including error types and response times.
+    #     """
+    #     error_types = defaultdict(int)
+        
+    #     # Categorize errors by type or status code
+    #     for error in self.report_data['test_errors']:
+    #         match = re.search(r'\b\d{3}\b', str(error))
+    #         if match:
+    #             status_code = match.group()
+    #             error_types[f"{status_code} Error"] += 1
+    #         elif "Timeout" in str(error):
+    #             error_types["Timeout"] += 1
+    #         else:
+    #             error_types["Other Errors"] += 1
+
+    #     # Process response times for charts
+    #     response_times = []
+    #     for index, rt in enumerate(self.report_data.get('response_times', [])):
+    #         ts = rt.get('timestamp')
+    #         dur = rt.get('duration')  
+    #         name = self.report_data['test_statuses'][index].get('name', 'Unknown Test')
+    #         if ts is None or dur is None:
+    #             continue
+    #         timestamp_ms = float(ts) * 1000 if ts < 1e12 else float(ts)
+    #         duration_ms = float(dur) * 1000
+    #         formatted = time.strftime('%m/%d/%Y %H:%M', time.localtime(timestamp_ms / 1000))
+    #         response_times.append({'timestamp': timestamp_ms, 'formatted_time': formatted, 'duration': duration_ms, 'test_name': name })
+        
+    #     response_times.sort(key=lambda x: x['timestamp'])
+
+    #     return {
+    #         'summary_labels': ['Passed', 'Failed'],
+    #         'summary_data': [self.report_data.get('passed', 0), self.report_data.get('failed', 0)],
+    #         'error_labels': list(error_types.keys()),
+    #         'error_data': list(error_types.values()),
+    #         'response_times': response_times,
+    #     }
