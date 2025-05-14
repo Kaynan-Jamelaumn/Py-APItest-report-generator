@@ -12,7 +12,8 @@ report.log
 errors.log
 .log
 .docx
-
+test_report.html
+./test_report.html
 # Distribution / packaging
 .Python
 build/
