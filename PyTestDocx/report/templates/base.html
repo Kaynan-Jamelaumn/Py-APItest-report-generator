@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,17 +11,88 @@
             --secondary-color: #3498db;
             --success-color: #27ae60;
             --danger-color: #e74c3c;
-            --text-color: #34495e;
+            --text-color: #161717;
             --border-color: #ecf0f1;
+            --background-color: #f8f9fa;
+            --card-bg: white;
+            --chart-container-bg: white;
+            
+            --error-section-bg: #fff3f5;
+            --error-summary-bg: #fef2f2;
+            --error-content-bg: white;
+            
+            --error-test-bg: #dbeafe;
+            --error-type-bg: #fee2e2;
+            --error-message-bg: #ffedd5;
+            --error-description-bg: #dcfce7;
+            --error-url-bg: #e0e7ff;
+            --error-status-bg: #f3e8ff;
+            
+            --error-test-text: #1e40af;
+            --error-type-text: #991b1b;
+            --error-message-text: #92400e;
+            --error-description-text: #065f46;
+            --error-url-text: #3730a3;
+            --error-status-text: #5b21b6;
+            
+            --error-value-light: #000000; /* Darker black for light mode */
+            --error-value-dark: #ffffff; /* Brighter white for dark mode */
         }
 
+        [data-theme="dark"] {
+            --primary-color: #1a1a1a;
+            --secondary-color: #4a9fe3;
+            --success-color: #2ecc71;
+            --danger-color: #e74c3c;
+            --text-color: #e5e7eb;
+            --border-color: #374151;
+            --background-color: #111827;
+            --card-bg: #1f2937;
+            --chart-container-bg: #1f2937;
+            
+            --error-section-bg: #2d1a1f;
+            --error-summary-bg: #3a2525;
+            --error-content-bg: #1f2937;
+            
+            --error-test-bg: #1e3a8a;
+            --error-type-bg: #7f1d1d;
+            --error-message-bg: #854d0e;
+            --error-description-bg: #065f46;
+            --error-url-bg: #1e3a8a;
+            --error-status-bg: #4c1d95;
+            
+            --error-test-text: #93c5fd;
+            --error-type-text: #fca5a5;
+            --error-message-text: #fdba74;
+            --error-description-text: #6ee7b7;
+            --error-url-text: #a5b4fc;
+            --error-status-text: #d8b4fe;
+            
+            --error-value-light: #000000;
+            --error-value-dark: #ffffff;
+        }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
             color: var(--text-color);
             margin: 0;
             padding: 20px;
-            background-color: #f8f9fa;
+            background-color: var(--background-color);
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 1000;
+            transition: all 0.3s ease;
         }
 
         .header {
@@ -41,7 +112,7 @@
         }
 
         .card {
-            background: white;
+            background: var(--card-bg);
             padding: 1.5rem;
             border-radius: 8px;
             box-shadow: 0 2px 12px rgba(0,0,0,0.08);
@@ -56,7 +127,7 @@
         }
 
         .chart-container {
-            background: white;
+            background: var(--chart-container-bg);
             padding: 1.5rem;
             border-radius: 8px;
             box-shadow: 0 2px 12px rgba(0,0,0,0.08);
@@ -81,7 +152,7 @@
         }
 
         .error-section {
-            background-color: #fff3f5;
+            background-color: var(--error-section-bg);
             border-left: 4px solid var(--danger-color);
             padding: 1.5rem;
             margin: 1.5rem 0;
@@ -96,7 +167,7 @@
 
         .error-section pre {
             white-space: pre-wrap;
-            background-color: white;
+            background-color: var(--error-content-bg);
             padding: 1rem;
             border-radius: 4px;
             border: 1px solid var(--border-color);
@@ -111,16 +182,104 @@
             font-weight: 600;
             margin: 0.5rem 0;
         }
+
+        .error-details {
+            margin: 1rem 0;
+            border-radius: 6px;
+            background: var(--error-content-bg);
+            border: 1px solid var(--border-color);
+        }
+
+        .error-summary {
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            background: var(--error-summary-bg);
+        }
+
+        .error-badge {
+            background: #dc2626;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            font-size: 0.9em;
+        }
+
+        .error-content {
+            padding: 1rem;
+            background: var(--error-content-bg);
+        }
+
+        .error-line {
+            padding: 0.5rem 1rem;
+            margin: 0.25rem 0;
+            border-radius: 4px;
+            font-family: Monaco, Consolas, 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .error-test {
+            background-color: var(--error-test-bg);
+            color: var(--error-test-text);
+        }
+        .error-type {
+            background-color: var(--error-type-bg);
+            color: var(--error-type-text);
+        }
+        .error-message {
+            background-color: var(--error-message-bg);
+            color: var(--error-message-text);
+        }
+        .error-description {
+            background-color: var(--error-description-bg);
+            color: var(--error-description-text);
+        }
+        .error-url {
+            background-color: var(--error-url-bg);
+            color: var(--error-url-text);
+        }
+        .error-status {
+            background-color: var(--error-status-bg);
+            color: var(--error-status-text);
+        }
+
+        .error-label {
+            font-weight: 600;
+            min-width: 120px;
+            display: inline-block;
+            margin-right: 1rem;
+        }
+        .error-value {
+        color: var(--text-color);
+        word-break: break-word;
+        opacity: 1; /* Changed from 0.9 to 1 for full opacity */
+        font-weight: 500; /* Slightly bolder for better readability */
+        }
+
+        [data-theme="light"] .error-value {
+            color: #000000; /* Pure black in light mode */
+        }
+
+        [data-theme="dark"] .error-value {
+            color: #ffffff; /* Pure white in dark mode */
+        }
     </style>
 </head>
 <body>
+    <button class="theme-toggle" id="themeToggle"> Toggle Theme</button>
+    
     <div class="header">
         <h1>{{ meta.project }} Test Report</h1>
         <p>Generated on {{ meta.generated }} | Environment: {{ meta.environment }}</p>
         <p>Base URL: {{ meta.base_url }}</p>
     </div>
 
-    <!-- Summary Cards -->
     <div class="grid-container">
         <div class="card">
             <h3>Test Summary</h3>
@@ -141,7 +300,6 @@
         </div>
     </div>
 
-    <!-- Charts Section -->
     <div class="chart-row">
         <div class="chart-container">
             <canvas id="summaryChart"></canvas>
@@ -170,7 +328,6 @@
     </div>
     {% endif %}
 
-    <!-- Environment Information -->
     <div class="card">
         <h3>Environment Details</h3>
         <table class="environment-table">
@@ -182,7 +339,6 @@
         </table>
     </div>
 
-    <!-- Test Cases Table -->
     <div class="card">
         <h3>Test Case Details</h3>
         <table>
@@ -204,7 +360,7 @@
             </tbody>
         </table>
     </div>
-    <!-- Errors Section -->
+
     {% if errors %}
     <div class="error-section">
         <h3> Errors ({{ errors|length }})</h3>
@@ -217,210 +373,222 @@
                     <span class="error-type">{{ error | extract_error_type }}</span>
                 </span>
             </summary>
-            <!-- Rest of the error content remains the same -->
-                <div class="error-content">
-                    {% for line in error.split('\n') %}
-                        {% if 'Response Content:' not in line %}  
-                            <div class="error-line 
-                                {% if 'Test:' in line %}error-test
-                                {% elif 'Type:' in line %}error-type
-                                {% elif 'Message:' in line %}error-message
-                                {% elif 'Description:' in line %}error-description
-                                {% elif 'URL:' in line %}error-url
-                                {% elif 'Status Code:' in line %}error-status
-                                {% endif %}">
-                                {% if ':' in line %}
-                                    <span class="error-label">{{ line.split(':')[0] }}:</span>
-                                    <span class="error-value">{{ line.split(':', 1)[1]|trim }}</span>
-                                {% else %}
-                                    {{ line }}
-                                {% endif %}
-                            </div>
-                        {% endif %}  <!-- Close the condition -->
-                    {% endfor %}
-                </div>
+            <div class="error-content">
+                {% for line in error.split('\n') %}
+                    {% if 'Response Content:' not in line %}  
+                        <div class="error-line 
+                            {% if 'Test:' in line %}error-test
+                            {% elif 'Type:' in line %}error-type
+                            {% elif 'Message:' in line %}error-message
+                            {% elif 'Description:' in line %}error-description
+                            {% elif 'URL:' in line %}error-url
+                            {% elif 'Status Code:' in line %}error-status
+                            {% endif %}">
+                            {% if ':' in line %}
+                                <span class="error-label">{{ line.split(':')[0] }}:</span>
+                                <span class="error-value">{{ line.split(':', 1)[1]|trim }}</span>
+                            {% else %}
+                                {{ line }}
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                {% endfor %}
             </div>
         </details>
         {% endfor %}
     </div>
-
-    <style>
-        .error-type {
-    color: #6b21a8;
-    font-size: 0.9em;
-    margin-left: 0.5rem;
-}
-        .error-details {
-            margin: 1rem 0;
-            border-radius: 6px;
-            background: #fff;
-            border: 1px solid #eee;
-        }
-
-        .error-summary {
-            padding: 1rem;
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            background: #fef2f2;
-        }
-
-        .error-badge {
-            background: #ef4444;
-            color: white;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 1rem;
-            font-size: 0.9em;
-        }
-
-        .error-title {
-            font-weight: 600;
-            color: #b91c1c;
-        }
-
-        .error-content {
-            padding: 1rem;
-            background: #fff;
-        }
-
-        .error-line {
-            padding: 0.5rem 1rem;
-            margin: 0.25rem 0;
-            border-radius: 4px;
-            font-family: Monaco, Consolas, 'Courier New', monospace;
-            font-size: 0.9em;
-        }
-
-        .error-label {
-            font-weight: 600;
-            min-width: 120px;
-            display: inline-block;
-            margin-right: 1rem;
-        }
-
-        .error-test .error-label { color: #1d4ed8; }
-        .error-type .error-label { color: #b91c1c; }
-        .error-message .error-label { color: #c2410c; }
-        .error-description .error-label { color: #047857; }
-        .error-url .error-label { color: #4338ca; }
-        .error-status .error-label { color: #6b21a8; }
-
-        .error-value {
-            color: #374151;
-            word-break: break-word;
-        }
-
-        .error-test { background-color: #dbeafe; }
-        .error-type { background-color: #fee2e2; }
-        .error-message { background-color: #ffedd5; }
-        .error-description { background-color: #dcfce7; }
-        .error-url { background-color: #e0e7ff; }
-        .error-status { background-color: #f3e8ff; }
-    </style>
     {% endif %}
+
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
-
     <script>
-        // Summary Pie Chart
-        new Chart(document.getElementById('summaryChart'), {
-            type: 'doughnut',
-            data: {
-                labels: {{ charts.summary_labels | tojson }},
-                datasets: [{
-                    data: {{ charts.summary_data | tojson }},
-                    backgroundColor: ['#27ae60', '#e74c3c'],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'right' },
-                    title: { display: true, text: 'Test Results Summary' }
-                }
-            }
-        });
+        // Theme management
+        const themeToggle = document.getElementById('themeToggle');
+        const html = document.documentElement;
+        let summaryChart, errorChart, responseChart;
 
-        // Error Distribution Chart
-        new Chart(document.getElementById('errorChart'), {
-            type: 'bar',
-            data: {
-                labels: {{ charts.error_labels | tojson }},
-                datasets: [{
-                    label: 'Error Count',
-                    data: {{ charts.error_data | tojson }},
-                    backgroundColor: '#e74c3c',
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    title: { display: true, text: 'Error Distribution' }
-                },
-                scales: {
-                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
-                }
-            }
-        });
-
-        // Response Time Chart
-        {% if charts.response_times %}
-         // Response Time Chart
-        const responseData = {{ charts.response_times | tojson }};
-
-        new Chart(document.getElementById('responseChart'), {
-        type: 'line',
-        data: {
-            datasets: [{
-            // Each point is now { x, y, test_name }
-            data: responseData.map(rt => ({ x: rt.timestamp, y: rt.duration, test_name: rt.test_name })),
-            borderColor: '#3498db',
-            tension: 0.2,
-            fill: false,
-            pointRadius: 5
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-            title: { display: true, text: 'Response Times Over Time' },
-            tooltip: {
-                callbacks: {
-                label: function(context) {
-                    const tn = context.raw.test_name || 'Unknown';
-                    const ms = context.parsed.y.toFixed(2);
-                    return tn + ': ' + ms + ' ms';
-                }
-                }
-            }
-            },
-            scales: {
-            x: {
-                type: 'time',
-                time: {
-                unit: 'minute',
-                tooltipFormat: 'MM/dd/yyyy HH:mm'
-                },
-                title: { display: true, text: 'Time' }
-            },
-            y: {
-                title: { display: true, text: 'Duration (ms)' },
-                beginAtZero: true
-            }
-            }
+        function getChartColors() {
+            return {
+                text: getComputedStyle(html).getPropertyValue('--text-color'),
+                grid: getComputedStyle(html).getPropertyValue('--border-color'),
+                bg: getComputedStyle(html).getPropertyValue('--chart-container-bg')
+            };
         }
+
+        function setTheme(theme) {
+            html.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            destroyCharts();
+            initializeCharts();
+        }
+
+        function destroyCharts() {
+            if(summaryChart) summaryChart.destroy();
+            if(errorChart) errorChart.destroy();
+            if(responseChart) responseChart.destroy();
+        }
+
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = html.getAttribute('data-theme') || 'light';
+            setTheme(currentTheme === 'dark' ? 'light' : 'dark');
         });
-        {% endif %}
+
+        // Initialize theme
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        setTheme(savedTheme);
+
+        // Chart initialization
+        function initializeCharts() {
+            const colors = getChartColors();
+
+            // Summary Chart
+            summaryChart = new Chart(document.getElementById('summaryChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: {{ charts.summary_labels | tojson }},
+                    datasets: [{
+                        data: {{ charts.summary_data | tojson }},
+                        backgroundColor: ['#27ae60', '#e74c3c'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { 
+                            position: 'right',
+                            labels: { color: colors.text }
+                        },
+                        title: { 
+                            display: true, 
+                            text: 'Test Results Summary',
+                            color: colors.text
+                        }
+                    }
+                }
+            });
+
+            // Error Chart
+            errorChart = new Chart(document.getElementById('errorChart'), {
+                type: 'bar',
+                data: {
+                    labels: {{ charts.error_labels | tojson }},
+                    datasets: [{
+                        label: 'Error Count',
+                        data: {{ charts.error_data | tojson }},
+                        backgroundColor: '#e74c3c',
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        title: { 
+                            display: true, 
+                            text: 'Error Distribution',
+                            color: colors.text
+                        }
+                    },
+                    scales: {
+                        y: { 
+                            beginAtZero: true, 
+                            ticks: { 
+                                stepSize: 1,
+                                color: colors.text
+                            },
+                            grid: { color: colors.grid },
+                            title: {
+                                display: true,
+                                text: 'Error Count',
+                                color: colors.text
+                            }
+                        },
+                        x: {
+                            ticks: { color: colors.text },
+                            grid: { color: colors.grid },
+                            title: {
+                                display: true,
+                                text: 'Error Type',
+                                color: colors.text
+                            }
+                        }
+                    }
+                }
+            });
+
+            {% if charts.response_times %}
+            // Response Time Chart
+            const responseData = {{ charts.response_times | tojson }};
+            responseChart = new Chart(document.getElementById('responseChart'), {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        data: responseData.map(rt => ({ 
+                            x: rt.timestamp, 
+                            y: rt.duration, 
+                            test_name: rt.test_name 
+                        })),
+                        borderColor: '#3498db',
+                        tension: 0.2,
+                        fill: false,
+                        pointRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { 
+                            display: true, 
+                            text: 'Response Times Over Time',
+                            color: colors.text
+                        },
+                        tooltip: {
+                            backgroundColor: colors.bg,
+                            titleColor: colors.text,
+                            bodyColor: colors.text,
+                            borderColor: colors.grid,
+                            callbacks: {
+                                label: function(context) {
+                                    const tn = context.raw.test_name || 'Unknown';
+                                    const ms = context.parsed.y.toFixed(2);
+                                    return tn + ': ' + ms + ' ms';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'minute',
+                                tooltipFormat: 'MM/dd/yyyy HH:mm'
+                            },
+                            title: { 
+                                display: true, 
+                                text: 'Time',
+                                color: colors.text
+                            },
+                            ticks: { color: colors.text },
+                            grid: { color: colors.grid }
+                        },
+                        y: {
+                            title: { 
+                                display: true, 
+                                text: 'Duration (ms)',
+                                color: colors.text
+                            },
+                            beginAtZero: true,
+                            ticks: { color: colors.text },
+                            grid: { color: colors.grid }
+                        }
+                    }
+                }
+            });
+            {% endif %}
+        }
     </script>
 </body>
 </html>
